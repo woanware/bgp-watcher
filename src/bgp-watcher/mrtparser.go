@@ -79,54 +79,11 @@ entries:
 			continue entries
 		}
 
-		//if msg.Header.Type != bgp.TABLE_DUMPv2 {
-		//	fmt.Println("messtype")
-		//	//return 0, fmt.Errorf("unexpected message type: %d", msg.Header.Type)
-		//}
-
-		switch mtrBody := msg.Body.(type) {
-		case *bgp.PeerIndexTable:
-			// IGNORED
-
-		case *bgp.Rib:
-			// IGNORED
-
-			// prefix := mtrBody.Prefix
-			// if len(mtrBody.Entries) < 0 {
-			// 	return 0, fmt.Errorf("no entries")
-			// }
-
-			// for _, entry := range mtrBody.Entries {
-			// attrs:
-			// 	for _, attr := range entry.PathAttributes {
-			// 		switch attr := attr.(type) {
-			// 		case *bgp.PathAttributeAsPath:
-			// 			if len(attr.Value) < 1 {
-			// 				continue attrs
-			// 			}
-			// 			if v, ok := attr.Value[0].(*bgp.As4PathParam); ok {
-			// 				if len(v.AS) < 0 {
-			// 					continue attrs
-			// 				}
-			// 				asn := v.AS[len(v.AS)-1]
-
-			// 				fmt.Printf("%s, AS%v\n", prefix.String(), asn)
-
-			// 				n++
-
-			// 				continue entries
-			// 			}
-			// 		}
-			// 	}
-			// }h
-		case *bgp.BGP4MPStateChange:
-			// IGNORED
-
+		switch msg.Body.(type) {
 		case *bgp.BGP4MPMessage:
 
 			bgp4mp := msg.Body.(*bgp.BGP4MPMessage)
 
-			//
 			switch bgp4mp.BGPMessage.Body.(type) {
 			case *bgp.BGPUpdate:
 
@@ -186,25 +143,23 @@ entries:
 							//temp1 := asValue.(*bgp.AsPathParam).AS
 							//fmt.Printf("LAST: %v", asValue.(*bgp.AsPathParam).AS[len(asValue.(*bgp.AsPathParam).AS)-1])
 
-							//temp1 := asValue.(*bgp.As4PathParam).AS
-							//fmt.Printf("LAST: %v\n", temp1[len(temp1)-1])
-
-							// //fmt.Printf("LAST: %v", asValue[len(asValue-1])
-							// for e, f := range asValue.(*bgp.AsPathParam).AS {
-							// 	fmt.Printf("EE2 %v\n", e)
-							// 	fmt.Printf("FF2 %v\n", f)
-							// }
 							break
 						}
 					}
 				}
 
+			case *bgp.PeerIndexTable:
+				// IGNORED
+
+			case *bgp.Rib:
+				// IGNORED
+
+			case *bgp.BGP4MPStateChange:
+				// IGNORED
+
 			case *bgp.BGPKeepAlive:
 				// IGNORED
 			}
-
-		default:
-			return asns, fmt.Errorf("unsupported message %v %v", mtrBody, msg)
 		}
 	}
 
