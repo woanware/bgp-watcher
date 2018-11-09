@@ -18,7 +18,7 @@ import (
 )
 
 const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc00/"
-const HISTORY_MONTHS int = 2
+const HISTORY_MONTHS int = 6
 
 //
 func main() {
@@ -56,16 +56,10 @@ func loadHistoricalData() {
 	fmt.Println("START")
 	fmt.Println(time.Now())
 
+	asns := make(map[uint32]map[string]uint64)
+
 	mrtParser := new(MrtParser)
 	for i := HISTORY_MONTHS - 1; i >= 0; i-- {
-
-		//fmt.Printf("Update file in cache: %s\n", href)
-		// 			bgpDump := new(BGPDump)
-
-		// 			_, err := bgpDump.Parse(fmt.Sprintf("cache/%v/%v/%s", timestamp.Year(), int(timestamp.Month()), href))
-		// 			if err != nil {
-
-		// 			}
 
 		year = int(timestampNow.AddDate(0, -i, 0).Year())
 		month = int(timestampNow.AddDate(0, -i, 0).Month())
@@ -80,7 +74,7 @@ func loadHistoricalData() {
 		for _, file := range files {
 			wg.Add(1)
 
-			go func(year int, month int, filePath string) {
+			go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
 				defer wg.Done()
 
 				semaphore <- struct{}{} // Lock
@@ -88,7 +82,7 @@ func loadHistoricalData() {
 					<-semaphore // Unlock
 				}()
 
-				data, err := mrtParser.Parse(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
+				_, err := mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
 				if err != nil {
 					if strings.Contains(err.Error(), "gzip: invalid header") == true {
 						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
@@ -98,14 +92,14 @@ func loadHistoricalData() {
 					} else {
 						fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
 					}
-				} else {
-					for k, v := range data {
-						fmt.Printf("%v: %v\n", k, v)
-					}
 				}
-			}(year, month, file.Name())
+			}(asns, year, month, file.Name())
 		}
 		wg.Wait()
+	}
+
+	for k, v := range asns {
+		fmt.Printf("%v: %v\n", k, v)
 	}
 
 	fmt.Println("FINISH")
@@ -137,12 +131,14 @@ func checkDirectories(year int, month int) error {
 // downloaded and the file header checked (GZIP)
 func downloadUpdateFiles(year int, month int) {
 
-	fmt.Println(fmt.Sprintf("%s%v.%v", RIPE_UPDATES, year, month))
-	doc, err := goquery.NewDocument(fmt.Sprintf("%s%v.%v", RIPE_UPDATES, year, month))
+	fmt.Println(fmt.Sprintf("%s%v.%02d", RIPE_UPDATES, year, month))
+	doc, err := goquery.NewDocument(fmt.Sprintf("%s%v.%02d", RIPE_UPDATES, year, month))
 	if err != nil {
 		fmt.Printf("Error downloading update page (%s): %v\n", fmt.Sprintf("%s%v.%v", RIPE_UPDATES, year, month), err)
 		os.Exit(-1)
 	}
+
+	files := make([]string, 0)
 
 	doc.Find("a[href]").Each(func(index int, item *goquery.Selection) {
 
@@ -153,14 +149,37 @@ func downloadUpdateFiles(year int, month int) {
 			// Check if update file has been cached, if not then download
 			if util.DoesFileExist(fmt.Sprintf("./cache/%v/%v/%s", year, month, href)) == false {
 
-				fmt.Printf("Update file not in cache: %s\n", href)
-				err = downloadUpdateFile(year, month, href)
-				if err != nil {
-					fmt.Printf("Error downloading update file: %s\n", href)
-				}
+				files = append(files, href)
+
 			}
 		}
 	})
+
+	// Now perform the actual downloading concurrentl
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 4)
+	for _, file := range files {
+		wg.Add(1)
+
+		go func(year int, month int, fileName string) {
+			defer wg.Done()
+
+			semaphore <- struct{}{} // Lock
+			defer func() {
+				<-semaphore // Unlock
+			}()
+
+			fmt.Printf("Uncached update file: %s\n", fileName)
+			err = downloadUpdateFile(year, month, fileName)
+			if err != nil {
+				fmt.Printf("Error downloading update file (%s): %v\n", fileName, err)
+			} else {
+
+			}
+
+		}(year, month, file)
+	}
+	wg.Wait()
 }
 
 // Performs the actual BGP update file downloading
@@ -171,7 +190,7 @@ func downloadUpdateFile(year int, month int, href string) error {
 
 		// Download the file to the "cache" directory
 		err = DownloadFile(fmt.Sprintf("./temp/%v/%v/%s", year, month, href),
-			fmt.Sprintf("%s/%v.%v/%s", RIPE_UPDATES, year, month, href))
+			fmt.Sprintf("%s/%v.%02d/%s", RIPE_UPDATES, year, month, href))
 
 		if err != nil {
 			fmt.Printf("Error downloading update file (%s): %v\n", href, err)

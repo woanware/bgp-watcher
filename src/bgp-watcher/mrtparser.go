@@ -40,9 +40,9 @@ type MrtParser struct {
 }
 
 //
-func (b *MrtParser) Parse(filePath string) (map[uint32]map[string]uint64, error) {
+func (b *MrtParser) Parse(asns map[uint32]map[string]uint64, filePath string) (map[uint32]map[string]uint64, error) {
 
-	asns := make(map[uint32]map[string]uint64)
+	//asns := make(map[uint32]map[string]uint64)
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -117,15 +117,15 @@ entries:
 							last = asValue.(*bgp.As4PathParam).AS[len(asValue.(*bgp.As4PathParam).AS)-1]
 
 							if last == 34737 || last == 34178 {
-								fmt.Println(bgp4mp.String())
-								fmt.Println("QINETIQ")
-								fmt.Printf("%v\n", asValue)
-								fmt.Printf("-----------------------\n")
+								//fmt.Println(bgp4mp.String())
+								//fmt.Println("QINETIQ")
+								//fmt.Printf("%v\n", asValue)
+								//fmt.Printf("-----------------------\n")
 
-								if asns[last] == nil {
-									asns[last] = make(map[string]uint64)
+								if asns[bgp4mp.PeerAS] == nil {
+									asns[bgp4mp.PeerAS] = make(map[string]uint64)
 								}
-								asns[last][asValue.String()]++
+								asns[bgp4mp.PeerAS][asValue.String()]++
 
 								// for _, e := range asValue.(*bgp.As4PathParam).AS {
 								// 	fmt.Printf("EE1 %v\n", e)
