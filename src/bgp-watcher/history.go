@@ -59,64 +59,6 @@ func (h *History) download(ts time.Time) {
 	}
 }
 
-//
-func (h *History) parse(ts time.Time) {
-
-	fmt.Println("START")
-	fmt.Println(time.Now())
-
-	var year int
-	var month int
-	asns := make(map[uint32]map[string]uint64)
-
-	mrtParser := new(MrtParser)
-	for i := h.Months - 1; i >= 0; i-- {
-
-		year = int(ts.AddDate(0, -i, 0).Year())
-		month = int(ts.AddDate(0, -i, 0).Month())
-
-		files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%v/%v", year, month))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var wg sync.WaitGroup
-		semaphore := make(chan struct{}, h.Processes)
-		for _, file := range files {
-			wg.Add(1)
-
-			go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
-				defer wg.Done()
-
-				semaphore <- struct{}{} // Lock
-				defer func() {
-					<-semaphore // Unlock
-				}()
-
-				_, err := mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
-				if err != nil {
-					if strings.Contains(err.Error(), "gzip: invalid header") == true {
-						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
-						if err != nil {
-							fmt.Println("Error deleting malformed BGP file (%s): %v\n", fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath), err)
-						}
-					} else {
-						fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
-					}
-				}
-			}(asns, year, month, file.Name())
-		}
-		wg.Wait()
-	}
-
-	for k, v := range asns {
-		fmt.Printf("%v: %v\n", k, v)
-	}
-
-	fmt.Println("FINISH")
-	fmt.Println(time.Now())
-}
-
 // Downloads RIPE page containing BGP update files, using a specific year/month
 // index. Parses the page for update files, checks if the file has already been
 // downloaded and the file header checked (GZIP)
@@ -205,4 +147,62 @@ func downloadUpdateFile(year int, month int, href string) error {
 	})
 
 	return err
+}
+
+//
+func (h *History) parse(ts time.Time) {
+
+	fmt.Println("START")
+	fmt.Println(time.Now())
+
+	var year int
+	var month int
+	asns := make(map[uint32]map[string]uint64)
+
+	mrtParser := new(MrtParser)
+	for i := h.Months - 1; i >= 0; i-- {
+
+		year = int(ts.AddDate(0, -i, 0).Year())
+		month = int(ts.AddDate(0, -i, 0).Month())
+
+		files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%v/%v", year, month))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var wg sync.WaitGroup
+		semaphore := make(chan struct{}, h.Processes)
+		for _, file := range files {
+			wg.Add(1)
+
+			go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
+				defer wg.Done()
+
+				semaphore <- struct{}{} // Lock
+				defer func() {
+					<-semaphore // Unlock
+				}()
+
+				_, err := mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
+				if err != nil {
+					if strings.Contains(err.Error(), "gzip: invalid header") == true {
+						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
+						if err != nil {
+							fmt.Println("Error deleting malformed BGP file (%s): %v\n", fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath), err)
+						}
+					} else {
+						fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
+					}
+				}
+			}(asns, year, month, file.Name())
+		}
+		wg.Wait()
+	}
+
+	for k, v := range asns {
+		fmt.Printf("%v: %v\n", k, v)
+	}
+
+	fmt.Println("FINISH")
+	fmt.Println(time.Now())
 }

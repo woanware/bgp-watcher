@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
+	flags "github.com/jessevdk/go-flags"
 	"github.com/spf13/viper"
 )
 
@@ -18,7 +20,8 @@ const HISTORY_MONTHS int = 6
 // ##### Variables #####################################################################################################
 
 var (
-	config *Config
+	config  *Config
+	options Options
 )
 
 // ##### Methods ##############################################################
@@ -27,6 +30,15 @@ var (
 func main() {
 
 	fmt.Println(fmt.Sprintf("\n%s v%s - woanware\n", APP_NAME, APP_VERSION))
+
+	var parser = flags.NewParser(&options, flags.Default)
+	if _, err := parser.Parse(); err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
 
 	config = new(Config)
 	if loadConfig() == false {
