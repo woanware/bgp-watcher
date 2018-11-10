@@ -34,13 +34,9 @@
   version = "1.5.0"
 
 [[constraint]]
-  name = "github.com/PuerkitoBio/goquery"
-  version = "1.4.1"
-
-[[constraint]]
   branch = "master"
   name = "github.com/woanware/goutil"
 
 [[constraint]]
-  name = "gopkg.in/matryer/try.v1"
-  version = "1.0.0"
+  name = "github.com/spf13/viper"
+  version = "1.2.1"
