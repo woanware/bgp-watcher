@@ -1,2 +1,12 @@
+database_server: localhost
+database_port: 5432
+database_username: postgres
+database_password: postgres
+database: bgpm
 history_months: 6
 processes: 4
+target_as: 34178
+neighbour_peers:
+ - 50173
+ - 8928
+ - 3257

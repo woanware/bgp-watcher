@@ -55,16 +55,11 @@ func (b *MrtParser) Parse(asns map[uint32]map[string]uint64, filePath string) (m
 	}
 	scanner := bufio.NewScanner(gzipReader)
 	scanner.Split(bgp.SplitMrt)
-	count := 0
-
-	// indexTableCount := 0
-	// db := make(map[string]uint32, 0)
 
 	var last uint32
 
 entries:
 	for scanner.Scan() {
-		count++
 		data := scanner.Bytes()
 
 		hdr := &bgp.MRTHeader{}
@@ -93,10 +88,6 @@ entries:
 				// 	fmt.Printf("%v:%v\n", a, b)0
 				// }
 
-				// for a, b := range bgpUpdate.NLRI {
-				// 	fmt.Printf("%v:%v\n", a, b)
-				// }
-
 				for _, pa := range bgpUpdate.PathAttributes {
 
 					if pa.GetType() != bgp.BGP_ATTR_TYPE_AS_PATH {
@@ -116,7 +107,14 @@ entries:
 
 							last = asValue.(*bgp.As4PathParam).AS[len(asValue.(*bgp.As4PathParam).AS)-1]
 
-							if last == 34737 || last == 34178 {
+							if last == 34178 {
+
+								fmt.Println(bgp4mp.String())
+								for a, b := range bgpUpdate.NLRI {
+									fmt.Printf("%v:%v\n", a, b)
+								}
+								fmt.Printf("-----------------------\n")
+
 								//fmt.Println(bgp4mp.String())
 								//fmt.Println("QINETIQ")
 								//fmt.Printf("%v\n", asValue)

@@ -183,7 +183,7 @@ func (h *History) parse(ts time.Time) {
 					<-semaphore // Unlock
 				}()
 
-				_, err := mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
+				asns, err = mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
 				if err != nil {
 					if strings.Contains(err.Error(), "gzip: invalid header") == true {
 						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
@@ -199,10 +199,88 @@ func (h *History) parse(ts time.Time) {
 		wg.Wait()
 	}
 
-	for k, v := range asns {
-		fmt.Printf("%v: %v\n", k, v)
-	}
+	storeUpdates(asns)
+
+	// for k, v := range asns {
+	// 	fmt.Printf("%v: %v\n", k, v)
+	// }
 
 	fmt.Println("FINISH")
 	fmt.Println(time.Now())
+}
+
+//
+func storeUpdates(data map[uint32]map[string]uint64) {
+
+	txn, stmt, err := dbm.CopyStart("routes", "peer_as", "route", "count")
+	if err != nil {
+		fmt.Printf("Error preparing historic data statement: %v\n", err)
+		return
+	}
+
+	// for i := 0; i < 1000; i++ {
+	// 	_, err := stmt.Exec("abc", "def", i)
+	// 	if err != nil {
+	// 		t.Fatalf("error executing stmt: %s\n", err)
+	// 	}
+	// }
+	// if err := dbm.CopyCommit(txn, stmt); err != nil {
+	// 	t.Fatalf("error commiting transaction: %s\n", err)
+	// }
+
+	// txn, err := db.Begin()
+	// if err != nil {
+	// 	fmt.Printf("Error creating historic data transaction: %v", err)
+	// 	return
+	// }
+
+	// stmt, err := txn.Prepare(pq.CopyIn("routes", "peer_as", "route", "count"))
+	// if err != nil {
+	// 	fmt.Printf("Error preparing historic data statement: %v\n", err)
+	// 	return
+	// }
+
+	for peer, a := range data {
+		//fmt.Println(peer)
+
+		for route, count := range a {
+			//fmt.Println(route)
+			//fmt.Println(count)
+
+			_, err = stmt.Exec(peer, route, count)
+			if err != nil {
+				fmt.Printf("Error inserting historic data: %v\n", err)
+			}
+		}
+	}
+
+	if err = dbm.CopyCommit(txn, stmt); err != nil {
+		fmt.Printf("Error commiting historic data: %v\n", err)
+		return
+	}
+
+	// for k, u := range updates {
+	// 	_, err = stmt.Exec(k, u[])
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
+
+	// _, err = stmt.Exec()
+	// if err != nil {
+	// 	fmt.Printf("Error inserting historic data: %v\n", err)
+	// 	return
+	// }
+
+	// err = stmt.Close()
+	// if err != nil {
+	// 	fmt.Printf("Error closing historic data statement: %v\n", err)
+	// 	return
+	// }
+
+	// err = txn.Commit()
+	// if err != nil {
+	// 	fmt.Printf("Error commiting historic data: %v\n", err)
+	// 	return
+	// }
 }

@@ -43,6 +43,15 @@
   version = "v1.4.0"
 
 [[projects]]
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "c2353362d570a7bfa228149c62842019201cfb71"
@@ -119,6 +128,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/wirepair/godbm"
+  packages = ["."]
+  revision = "5cc0015bc5424f88ea9eeb74b638b39a4e26d50a"
+
+[[projects]]
+  branch = "master"
   name = "github.com/woanware/goutil"
   packages = ["."]
   revision = "feab513521a70cf07a65956e060c4ed3f6b07370"
@@ -166,6 +181,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6690e6640d6d0a2b8784684e4ac99a514d25f2f49dee75cd8baeabc5f8d4014a"
+  inputs-digest = "56bdfbc0c650c42ac5079346224d14a85a6f7aba539ce6c4db7f1abdf3483434"
   solver-name = "gps-cdcl"
   solver-version = 1
