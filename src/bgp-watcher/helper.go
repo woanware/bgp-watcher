@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	util "github.com/woanware/goutil"
 )
@@ -74,4 +75,10 @@ func DownloadFile(filepath string, url string) error {
 	}
 
 	return nil
+}
+
+// Converts an UInt16 to a string
+func ConvertUInt32ToString(data uint32) string {
+
+	return strconv.FormatInt(int64(data), 10)
 }

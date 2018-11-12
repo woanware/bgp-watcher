@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/jackc/pgx"
 	util "github.com/woanware/goutil"
 	try "gopkg.in/matryer/try.v1"
 )
@@ -212,11 +213,11 @@ func (h *History) parse(ts time.Time) {
 //
 func storeUpdates(data map[uint32]map[string]uint64) {
 
-	txn, stmt, err := dbm.CopyStart("routes", "peer_as", "route", "count")
-	if err != nil {
-		fmt.Printf("Error preparing historic data statement: %v\n", err)
-		return
-	}
+	// txn, stmt, err := dbm.CopyStart("routes", "peer_as", "route", "count")
+	// if err != nil {
+	// 	fmt.Printf("Error preparing historic data statement: %v\n", err)
+	// 	return
+	// }
 
 	// for i := 0; i < 1000; i++ {
 	// 	_, err := stmt.Exec("abc", "def", i)
@@ -240,24 +241,38 @@ func storeUpdates(data map[uint32]map[string]uint64) {
 	// 	return
 	// }
 
+	var rows [][]interface{}
+
 	for peer, a := range data {
 		//fmt.Println(peer)
 
 		for route, count := range a {
+
+			rows = append(rows, []interface{}{peer, route, count})
 			//fmt.Println(route)
 			//fmt.Println(count)
 
-			_, err = stmt.Exec(peer, route, count)
-			if err != nil {
-				fmt.Printf("Error inserting historic data: %v\n", err)
-			}
+			// _, err = stmt.Exec(peer, route, count)
+			// if err != nil {
+			// 	fmt.Printf("Error inserting historic data: %v\n", err)
+			// }
 		}
 	}
 
-	if err = dbm.CopyCommit(txn, stmt); err != nil {
-		fmt.Printf("Error commiting historic data: %v\n", err)
+	_, err := db.CopyFrom(
+		pgx.Identifier{"routes"},
+		[]string{"peer_as", "route", "count"},
+		pgx.CopyFromRows(rows))
+
+	if err != nil {
+		fmt.Printf("Error inserting historic data: %v\n", err)
 		return
 	}
+
+	// if err = dbm.CopyCommit(txn, stmt); err != nil {
+	// 	fmt.Printf("Error commiting historic data: %v\n", err)
+	// 	return
+	// }
 
 	// for k, u := range updates {
 	// 	_, err = stmt.Exec(k, u[])

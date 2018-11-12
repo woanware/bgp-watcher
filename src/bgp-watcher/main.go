@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/jackc/pgx"
 	flags "github.com/jessevdk/go-flags"
-	_ "github.com/lib/pq"
-	godbm "github.com/wirepair/godbm"
 )
 
 // ##### Constants #####################################################################################################
@@ -21,9 +19,8 @@ const HISTORY_MONTHS int = 6
 // ##### Variables #####################################################################################################
 
 var (
-	config *Config
-	//db      *sql.DB
-	dbm     *godbm.SqlStore
+	config  *Config
+	db      *pgx.Conn
 	options Options
 	asNames *AsNames
 )
@@ -77,10 +74,10 @@ func main() {
 	// for number, a := range asNames.Names {
 	// 	fmt.Printf("%v\n", number)
 	// 	fmt.Printf("%v\n", a.Country)
-	// 	fmt.Printf("%v\n", a.Name)
-	// 	fmt.Printf("%v\n--------------------------------\n", a.Description)
-	// 	//fmt.Printf("%v\n", a)
-	// }
+	// 	fmt.Printf("%v\n",pgx a.Name)
+	// 	fmt.Printf("%v\n--pgx------------------------------\n", a.Description)
+	// 	//fmt.Printf("%v\npgx", a)
+	// }pgx
 
 	h, err := NewHistory(config.HistoryMonths, config.Processes)
 	if err != nil {
@@ -106,9 +103,17 @@ func parseCommandLine() {
 //
 func configureDatabase() {
 
-	dbm = godbm.New(config.DatabaseUsername, config.DatabasePassword, config.Database, config.DatabaseServer, "verify-full", "")
-	if err := dbm.Connect(); err != nil {
-		log.Fatalf("Error connecting to database: %v\n", err)
+	c, err := pgx.ParseDSN(fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable",
+		config.DatabaseServer, config.DatabasePort, config.Database, config.DatabaseUsername, config.DatabasePassword))
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing database config: %v\n", err)
+		os.Exit(1)
 	}
 
+	db, err = pgx.Connect(c)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+		os.Exit(1)
+	}
 }

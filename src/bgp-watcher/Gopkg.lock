@@ -37,19 +37,23 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/jackc/pgx"
+  packages = [
+    ".",
+    "chunkreader",
+    "internal/sanitize",
+    "pgio",
+    "pgproto3",
+    "pgtype"
+  ]
+  revision = "89f1e6ac7276b61d885db5e5aed6fcbedd1c7e31"
+  version = "v3.2.0"
+
+[[projects]]
   name = "github.com/jessevdk/go-flags"
   packages = ["."]
   revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
   version = "v1.4.0"
-
-[[projects]]
-  name = "github.com/lib/pq"
-  packages = [
-    ".",
-    "oid"
-  ]
-  revision = "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79"
-  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -94,6 +98,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -125,12 +135,6 @@
   packages = ["."]
   revision = "2c12c60302a5a0e62ee102ca9bc996277c2f64f5"
   version = "v1.2.1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/wirepair/godbm"
-  packages = ["."]
-  revision = "5cc0015bc5424f88ea9eeb74b638b39a4e26d50a"
 
 [[projects]]
   branch = "master"
@@ -181,6 +185,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "56bdfbc0c650c42ac5079346224d14a85a6f7aba539ce6c4db7f1abdf3483434"
+  inputs-digest = "0cd7ce6a55414bd127cbf8278f7c76496143eabef4964d4bad8f31f7e5e1fcfd"
   solver-name = "gps-cdcl"
   solver-version = 1
