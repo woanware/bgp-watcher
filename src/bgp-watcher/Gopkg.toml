@@ -48,3 +48,7 @@
 [[constraint]]
   name = "github.com/jackc/pgx"
   version = "3.2.0"
+
+[[constraint]]
+  name = "github.com/robfig/cron"
+  version = "1.1.0"

@@ -9,10 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/jackc/pgx"
-	util "github.com/woanware/goutil"
-	try "gopkg.in/matryer/try.v1"
 )
 
 //
@@ -65,34 +62,12 @@ func (h *History) download(ts time.Time) {
 // downloaded and the file header checked (GZIP)
 func (h *History) downloadUpdateFiles(year int, month int) {
 
-	// Download the update page that is specific for the year/month
-	fmt.Println(fmt.Sprintf("Downloading update page: %s%v.%02d", RIPE_UPDATES, year, month))
-	doc, err := goquery.NewDocument(fmt.Sprintf("%s%v.%02d", RIPE_UPDATES, year, month))
+	files, err := getUpdateFiles(year, month)
 	if err != nil {
-		fmt.Printf("Error downloading update page (%s): %v\n", fmt.Sprintf("%s%v.%v", RIPE_UPDATES, year, month), err)
-		os.Exit(-1)
+		return
 	}
 
-	files := make([]string, 0)
-
-	// Parse the HTML and extract all "a" elements
-	doc.Find("a[href]").Each(func(index int, item *goquery.Selection) {
-
-		href, _ := item.Attr("href")
-
-		// Ensure that the extracted link has "updates." in the file name
-		if strings.HasPrefix(href, "updates.") == true {
-
-			// Check if update file has been cached, if not then download
-			if util.DoesFileExist(fmt.Sprintf("./cache/%v/%v/%s", year, month, href)) == false {
-
-				files = append(files, href)
-
-			}
-		}
-	})
-
-	// Now perform the actual downloading concurrentl
+	// Now perform the actual downloading concurrently
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, h.Processes)
 	for _, file := range files {
@@ -117,37 +92,6 @@ func (h *History) downloadUpdateFiles(year int, month int) {
 		}(year, month, file)
 	}
 	wg.Wait()
-}
-
-// Performs the actual BGP update file downloading
-func downloadUpdateFile(year int, month int, href string) error {
-
-	err := try.Do(func(attempt int) (bool, error) {
-		var err error
-
-		// Download the file to the "temp" directory
-		err = DownloadFile(fmt.Sprintf("./temp/%v/%v/%s", year, month, href),
-			fmt.Sprintf("%s/%v.%02d/%s", RIPE_UPDATES, year, month, href))
-
-		if err != nil {
-			fmt.Printf("Error downloading update file (%s): %v\n", href, err)
-		} else {
-			// Make sure the file header reads OK (gzip)
-			err = validateGzipFile(fmt.Sprintf("./temp/%v/%v/%s", year, month, href))
-			if err == nil {
-				// Move the file to the "cache" directory
-				err = os.Rename(fmt.Sprintf("./temp/%v/%v/%s", year, month, href), fmt.Sprintf("./cache/%v/%v/%s", year, month, href))
-				if err != nil {
-					fmt.Printf("Error moving temp update file to cache (%s): %v\n", href, err)
-				}
-				return false, nil
-			}
-		}
-
-		return attempt < 3, err // try 3 times
-	})
-
-	return err
 }
 
 //
@@ -184,7 +128,7 @@ func (h *History) parse(ts time.Time) {
 					<-semaphore // Unlock
 				}()
 
-				asns, err = mrtParser.Parse(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
+				asns, err = mrtParser.ParseAndCollect(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
 				if err != nil {
 					if strings.Contains(err.Error(), "gzip: invalid header") == true {
 						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
@@ -213,49 +157,11 @@ func (h *History) parse(ts time.Time) {
 //
 func storeUpdates(data map[uint32]map[string]uint64) {
 
-	// txn, stmt, err := dbm.CopyStart("routes", "peer_as", "route", "count")
-	// if err != nil {
-	// 	fmt.Printf("Error preparing historic data statement: %v\n", err)
-	// 	return
-	// }
-
-	// for i := 0; i < 1000; i++ {
-	// 	_, err := stmt.Exec("abc", "def", i)
-	// 	if err != nil {
-	// 		t.Fatalf("error executing stmt: %s\n", err)
-	// 	}
-	// }
-	// if err := dbm.CopyCommit(txn, stmt); err != nil {
-	// 	t.Fatalf("error commiting transaction: %s\n", err)
-	// }
-
-	// txn, err := db.Begin()
-	// if err != nil {
-	// 	fmt.Printf("Error creating historic data transaction: %v", err)
-	// 	return
-	// }
-
-	// stmt, err := txn.Prepare(pq.CopyIn("routes", "peer_as", "route", "count"))
-	// if err != nil {
-	// 	fmt.Printf("Error preparing historic data statement: %v\n", err)
-	// 	return
-	// }
-
 	var rows [][]interface{}
 
 	for peer, a := range data {
-		//fmt.Println(peer)
-
 		for route, count := range a {
-
 			rows = append(rows, []interface{}{peer, route, count})
-			//fmt.Println(route)
-			//fmt.Println(count)
-
-			// _, err = stmt.Exec(peer, route, count)
-			// if err != nil {
-			// 	fmt.Printf("Error inserting historic data: %v\n", err)
-			// }
 		}
 	}
 
@@ -268,34 +174,4 @@ func storeUpdates(data map[uint32]map[string]uint64) {
 		fmt.Printf("Error inserting historic data: %v\n", err)
 		return
 	}
-
-	// if err = dbm.CopyCommit(txn, stmt); err != nil {
-	// 	fmt.Printf("Error commiting historic data: %v\n", err)
-	// 	return
-	// }
-
-	// for k, u := range updates {
-	// 	_, err = stmt.Exec(k, u[])
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }
-
-	// _, err = stmt.Exec()
-	// if err != nil {
-	// 	fmt.Printf("Error inserting historic data: %v\n", err)
-	// 	return
-	// }
-
-	// err = stmt.Close()
-	// if err != nil {
-	// 	fmt.Printf("Error closing historic data statement: %v\n", err)
-	// 	return
-	// }
-
-	// err = txn.Commit()
-	// if err != nil {
-	// 	fmt.Printf("Error commiting historic data: %v\n", err)
-	// 	return
-	// }
 }

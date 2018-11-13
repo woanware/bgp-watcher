@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/jackc/pgx"
 	flags "github.com/jessevdk/go-flags"
@@ -79,11 +80,29 @@ func main() {
 	// 	//fmt.Printf("%v\npgx", a)
 	// }pgx
 
-	h, err := NewHistory(config.HistoryMonths, config.Processes)
-	if err != nil {
-		return
+	// h, err := NewHistory(config.HistoryMonths, config.Processes)
+	// if err != nil {
+	// 	return
+	// }
+	// h.Update()
+
+	// return
+
+	detector := NewDetector()
+	for as := range config.TargetAs {
+		detector.AddTargetAs(as)
 	}
-	h.Update()
+	for _, prefix := range config.Prefixes {
+		detector.AddPrefix(prefix)
+	}
+
+	monitor := NewMonitor(detector, config.Processes)
+	monitor.Start()
+
+	// Stop application from exiting
+	var wg sync.WaitGroup
+	wg.Add(1)
+	wg.Wait()
 }
 
 //

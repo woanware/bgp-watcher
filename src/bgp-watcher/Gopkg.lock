@@ -62,6 +62,12 @@
   version = "v1.8.0"
 
 [[projects]]
+  name = "github.com/matryer/try"
+  packages = ["."]
+  revision = "312d2599e12e89ca89b52a09597394f449235d80"
+  version = "v1"
+
+[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
@@ -102,6 +108,12 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/robfig/cron"
+  packages = ["."]
+  revision = "b41be1df696709bb6395fe435af20370037c0b4c"
+  version = "v1.1"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -171,12 +183,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  name = "gopkg.in/matryer/try.v1"
-  packages = ["."]
-  revision = "312d2599e12e89ca89b52a09597394f449235d80"
-  version = "v1"
-
-[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
@@ -185,6 +191,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0cd7ce6a55414bd127cbf8278f7c76496143eabef4964d4bad8f31f7e5e1fcfd"
+  inputs-digest = "887f51a68ff96a52d888ca49fb1010c613f7eed04dedd24d5493c704a36772d2"
   solver-name = "gps-cdcl"
   solver-version = 1

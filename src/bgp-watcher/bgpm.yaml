@@ -5,8 +5,9 @@ database_password: postgres
 database: bgpm
 history_months: 6
 processes: 4
-target_as: 34178
+
+target_as: 
+- 15169
 neighbour_peers:
- - 50173
- - 8928
- - 3257
+prefixes:
+ - 104.196.64.0/19
