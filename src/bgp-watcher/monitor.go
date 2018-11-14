@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"sync"
+
+	cron "github.com/robfig/cron"
 )
 
 // ##### Structs ##############################################################
@@ -31,8 +33,8 @@ func (m *Monitor) Start() {
 
 	m.detector.Start()
 
-	// c := cron.New()
-	// c.AddFunc("@every 1m", m.check)
+	c := cron.New()
+	c.AddFunc("@every 1m", m.check)
 	// c.Start()
 
 	m.check()

@@ -1,0 +1,38 @@
+{
+	"database_server": "localhost",
+	"database_port": 5432,
+	"database_username": "postgres",
+	"database_password": "postgres",
+	"database": "bgpm",
+	"history_months": 2,
+	"processes": 4,
+	"data_sets": [
+        {
+			"name": "LONDON-UK",
+			"url": "http://data.ris.ripe.net/rrc01/"
+        },
+		{
+			"name": "NEW-YORK-US",
+			"url": "http://data.ris.ripe.net/rrc11/"
+		},		
+        {
+            "name": "PALO-ALTO-US",
+			"url": "http://data.ris.ripe.net/rrc14/"
+        },		
+        {
+            "name": "MOSCOW-RU",
+			"url": "http://data.ris.ripe.net/rrc14/"
+        },		
+        {
+            "name": "OTEMACHI-JP",
+			"url": "http://data.ris.ripe.net/rrc06/"
+        }
+	],
+	"target_as": [
+		15169
+	],
+	"neighbour_peers": null,
+	"prefixes": [
+		"192.104.160.0/23"
+	]
+}
