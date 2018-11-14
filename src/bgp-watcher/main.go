@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx"
 	flags "github.com/jessevdk/go-flags"
+	viper "github.com/spf13/viper"
 )
 
 // ##### Constants #####################################################################################################
@@ -22,10 +23,11 @@ const HISTORY_MONTHS int = 6
 // ##### Variables #####################################################################################################
 
 var (
-	config  *Config
-	db      *pgx.Conn
-	options Options
-	asNames *AsNames
+	configReader *viper.Viper
+	config       *Config
+	db           *pgx.Conn
+	options      Options
+	asNames      *AsNames
 )
 
 // ##### Methods ##############################################################
@@ -36,8 +38,16 @@ func main() {
 	fmt.Println(fmt.Sprintf("\n%s v%s - woanware\n", APP_NAME, APP_VERSION))
 
 	parseCommandLine()
-	config = LoadConfig()
+	initialiseConfiguration()
+	config = parseConfiguration()
 	configureDatabase()
+
+	// for name, url := range config.DataSets {
+	// 	fmt.Println(name)
+	// 	fmt.Println(url)
+	// }
+
+	// return
 
 	asNames = NewAsNames()
 	err := asNames.Update()
@@ -54,7 +64,7 @@ func main() {
 	// 	//fmt.Printf("%v\npgx", a)
 	// }
 
-	h, err := NewHistory(config.HistoryMonths, config.Processes)
+	h, err := NewHistory(config.DataSets, config.HistoryMonths, config.Processes)
 	if err != nil {
 		return
 	}
@@ -109,4 +119,10 @@ func configureDatabase() {
 		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+//
+func reloadConfig() {
+
+	config = parseConfiguration()
 }

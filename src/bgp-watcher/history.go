@@ -16,14 +16,17 @@ import (
 
 //
 type History struct {
+	DataSets  map[string]string
 	Months    int
 	Processes int
 }
 
 // ##### Methods ##############################################################
 
-func NewHistory(months int, processes int) (*History, error) {
+func NewHistory(dataSets map[string]string, months int, processes int) (*History, error) {
+
 	return &History{
+		DataSets:  dataSets,
 		Months:    months,
 		Processes: processes,
 	}, nil
@@ -35,38 +38,59 @@ func (h *History) Update() {
 	// Get a constant value for NOW
 	ts := time.Now()
 
+	h.checkDirectories(ts)
 	h.download(ts)
 	h.parse(ts)
 }
 
+// checkDirectories ensures that the required directory structure has been created
+func (h *History) checkDirectories(ts time.Time) {
+
+	var year int
+	var month int
+	var err error
+
+	for name, _ := range config.DataSets {
+		for i := h.Months - 1; i >= 0; i-- {
+
+			year = int(ts.AddDate(0, -i, 0).Year())
+			month = int(ts.AddDate(0, -i, 0).Month())
+
+			err = checkDirectory(name, year, month)
+			if err != nil {
+				fmt.Printf("Error validating directory stores (%s/%v/%v): %v", name, year, month, err)
+				continue
+			}
+
+			//h.downloadUpdateFiles(year, month)
+		}
+	}
+}
+
 func (h *History) download(ts time.Time) {
 
-	var err error
 	var year int
 	var month int
 
-	for i := h.Months - 1; i >= 0; i-- {
+	for name, url := range config.DataSets {
+		for i := h.Months - 1; i >= 0; i-- {
 
-		year = int(ts.AddDate(0, -i, 0).Year())
-		month = int(ts.AddDate(0, -i, 0).Month())
+			year = int(ts.AddDate(0, -i, 0).Year())
+			month = int(ts.AddDate(0, -i, 0).Month())
 
-		err = checkDirectories(year, month)
-		if err != nil {
-			fmt.Printf("Error validating directory stores: %v", err)
-			continue
+			h.downloadUpdateFiles(name, url, year, month)
 		}
-
-		h.downloadUpdateFiles(year, month)
 	}
 }
 
 // Downloads RIPE page containing BGP update files, using a specific year/month
 // index. Parses the page for update files, checks if the file has already been
 // downloaded and the file header checked (GZIP)
-func (h *History) downloadUpdateFiles(year int, month int) {
+func (h *History) downloadUpdateFiles(name string, url string, year int, month int) {
 
-	files, err := getUpdateFiles(year, month)
+	files, err := getUpdateFiles(name, url, year, month)
 	if err != nil {
+		fmt.Printf("Error retrieving update file list (%s): %v\n", fmt.Sprintf("%s%v.%v", url, year, month), err)
 		return
 	}
 
@@ -84,8 +108,8 @@ func (h *History) downloadUpdateFiles(year int, month int) {
 				<-semaphore // Unlock
 			}()
 
-			fmt.Printf("Uncached update file: %s\n", fileName)
-			err = downloadUpdateFile(year, month, fileName)
+			fmt.Printf("Uncached update file (%s): %s\n", name, fileName)
+			err = downloadUpdateFile(name, year, month, fileName)
 			if err != nil {
 				fmt.Printf("Error downloading update file (%s): %v\n", fileName, err)
 			} else {

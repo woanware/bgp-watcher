@@ -110,12 +110,6 @@
   version = "v0.8.0"
 
 [[projects]]
-  name = "github.com/robfig/cron"
-  packages = ["."]
-  revision = "b41be1df696709bb6395fe435af20370037c0b4c"
-  version = "v1.1"
-
-[[projects]]
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -191,6 +185,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "887f51a68ff96a52d888ca49fb1010c613f7eed04dedd24d5493c704a36772d2"
+  inputs-digest = "21b3e1b4051df3a6d02f0751c4129758de0dc3bc1cf80cee56284ca1157d1152"
   solver-name = "gps-cdcl"
   solver-version = 1
