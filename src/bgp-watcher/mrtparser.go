@@ -18,18 +18,18 @@ type MrtParser struct {
 // ##### Methods ##############################################################
 
 //
-func (b *MrtParser) ParseAndCollect(detector *Detector, asns map[uint32]map[string]uint64, filePath string) (map[uint32]map[string]uint64, error) {
+func (b *MrtParser) ParseAndCollect(detector *Detector, historyStore *HistoryStore, filePath string) (*HistoryStore, error) {
 
 	//asns := make(map[uint32]map[string]uint64)
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return asns, err
+		return historyStore, err
 	}
 
 	gzipReader, err := gzip.NewReader(f)
 	if err != nil {
-		return asns, fmt.Errorf("couldn't create gzip reader: %v", err)
+		return historyStore, fmt.Errorf("couldn't create gzip reader: %v", err)
 	}
 
 	scanner := bufio.NewScanner(gzipReader)
@@ -52,7 +52,7 @@ entries:
 		hdr = &bgp.MRTHeader{}
 		err = hdr.DecodeFromBytes(data[:bgp.MRT_COMMON_HEADER_LEN])
 		if err != nil {
-			return asns, err
+			return historyStore, err
 		}
 
 		msg, err = bgp.ParseMRTBody(hdr, data[bgp.MRT_COMMON_HEADER_LEN:])
@@ -96,10 +96,12 @@ entries:
 
 							// Is the last part of the path one of ours
 							if detector.CheckTargetAs(last) == true {
-								if asns[bgp4mp.PeerAS] == nil {
-									asns[bgp4mp.PeerAS] = make(map[string]uint64)
-								}
-								asns[bgp4mp.PeerAS][asValue.String()]++
+
+								historyStore.Set(bgp4mp.PeerAS, asValue.String())
+								// if asns[bgp4mp.PeerAS] == nil {
+								// 	asns[bgp4mp.PeerAS] = make(map[string]uint64)
+								// }
+								// asns[bgp4mp.PeerAS][asValue.String()]++
 								continue entries
 							}
 
@@ -162,7 +164,7 @@ entries:
 		}
 	}
 
-	return asns, nil
+	return historyStore, nil
 }
 
 //

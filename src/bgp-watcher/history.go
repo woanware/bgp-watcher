@@ -15,6 +15,12 @@ import (
 // ##### Structs ##############################################################
 
 //
+type HistoryStore struct {
+	mux  sync.Mutex
+	data map[uint32]map[string]uint64
+}
+
+//
 type History struct {
 	DataSets  map[string]string
 	Months    int
@@ -23,6 +29,17 @@ type History struct {
 }
 
 // ##### Methods ##############################################################
+
+//
+func (hs *HistoryStore) Set(as uint32, route string) {
+
+	hs.mux.Lock()
+	if hs.data[as] == nil {
+		hs.data[as] = make(map[string]uint64)
+	}
+	hs.data[as][route]++
+	defer hs.mux.Unlock()
+}
 
 func NewHistory(d *Detector, dataSets map[string]string, months int, processes int) (*History, error) {
 
@@ -80,18 +97,18 @@ func (h *History) checkFiles(ts time.Time) {
 			year = int(ts.AddDate(0, -i, 0).Year())
 			month = int(ts.AddDate(0, -i, 0).Month())
 
-			files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%s/%v/%v", name, year, month))
+			files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%s/%d/%d", name, year, month))
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			for file := range files {
-				err = validateGzipFile(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, file))
+			for _, file := range files {
+				err = validateGzipFile(fmt.Sprintf("./cache/%s/%d/%d/%s", name, year, month, file.Name()))
 				if err != nil {
-					fmt.Printf("Corrupt update file ./cache/%s/%v/%v/%s", name, year, month, file)
-					err = os.Remove(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, file))
+					fmt.Printf("Corrupt update file ./cache/%s/%d/%d/%s", name, year, month, file.Name())
+					err = os.Remove(fmt.Sprintf("./cache/%s/%d/%d/%s", name, year, month, file.Name()))
 					if err != nil {
-						fmt.Printf("Error deleting corrupt update file (%s/%v/%v/%s): %v\n", name, year, month, file, err)
+						fmt.Printf("Error deleting corrupt update file (%s/%d/%d/%s): %v\n", name, year, month, file.Name(), err)
 					}
 				}
 			}
@@ -161,7 +178,9 @@ func (h *History) parse(ts time.Time) {
 
 	var year int
 	var month int
-	asns := make(map[uint32]map[string]uint64)
+
+	historyStore := &HistoryStore{data: make(map[uint32]map[string]uint64)}
+	//asns := make(map[uint32]map[string]uint64)
 
 	mrtParser := new(MrtParser)
 	for name := range config.DataSets {
@@ -180,7 +199,7 @@ func (h *History) parse(ts time.Time) {
 			for _, file := range files {
 				wg.Add(1)
 
-				go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
+				go func(historyStore *HistoryStore, year int, month int, filePath string) {
 					defer wg.Done()
 
 					semaphore <- struct{}{} // Lock
@@ -188,7 +207,7 @@ func (h *History) parse(ts time.Time) {
 						<-semaphore // Unlock
 					}()
 
-					asns, err = mrtParser.ParseAndCollect(h.detector, asns, fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath))
+					historyStore, err = mrtParser.ParseAndCollect(h.detector, historyStore, fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath))
 					if err != nil {
 						if strings.Contains(err.Error(), "gzip: invalid header") == true {
 							err = os.Remove(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath))
@@ -199,24 +218,24 @@ func (h *History) parse(ts time.Time) {
 							fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
 						}
 					}
-				}(asns, year, month, file.Name())
+				}(historyStore, year, month, file.Name())
 			}
 			wg.Wait()
 		}
 	}
 
-	storeUpdates(asns)
+	storeUpdates(historyStore)
 
 	fmt.Println("FINISH")
 	fmt.Println(time.Now())
 }
 
 //
-func storeUpdates(data map[uint32]map[string]uint64) {
+func storeUpdates(historyStore *HistoryStore) {
 
 	var rows [][]interface{}
 
-	for peer, a := range data {
+	for peer, a := range historyStore.data {
 		for route, count := range a {
 			rows = append(rows, []interface{}{peer, route, count})
 		}
