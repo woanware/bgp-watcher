@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	color "github.com/labstack/gommon/color"
 	"github.com/matryer/try"
 	util "github.com/woanware/goutil"
 )
@@ -168,4 +169,17 @@ func ConvertStringToUint32(data string) (uint32, error) {
 		return 0, err
 	}
 	return uint32(ret), nil
+}
+
+//
+func outputAlert(ap AlertPriority, alert string) {
+
+	switch ap {
+	case PriorityHigh:
+		color.Println(color.Red(alert))
+	case PriorityMedium:
+		color.Println(color.Yellow(alert))
+	case PriorityLow:
+		color.Println(color.Green(alert))
+	}
 }

@@ -5,19 +5,20 @@ type AlertPriority int
 
 //
 const (
-	Priority1 AlertPriority = 1
-	Priority2 AlertPriority = 2
-	Priority3 AlertPriority = 3
+	PriorityHigh   AlertPriority = 1
+	PriorityMedium AlertPriority = 2
+	PriorityLow    AlertPriority = 3
 )
 
 //
 func (ap AlertPriority) String() string {
+
 	switch ap {
-	case Priority1:
+	case PriorityHigh:
 		return "High"
-	case Priority2:
+	case PriorityMedium:
 		return "Medium"
-	case Priority3:
+	case PriorityLow:
 		return "Low"
 	default:
 		return "Unknown"

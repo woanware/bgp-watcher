@@ -56,6 +56,12 @@
   version = "v1.4.0"
 
 [[projects]]
+  name = "github.com/labstack/gommon"
+  packages = ["color"]
+  revision = "7fd9f68ece0bcb1a905fac8f1549f0083f71c51b"
+  version = "v0.2.8"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "c2353362d570a7bfa228149c62842019201cfb71"
@@ -191,6 +197,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "80a1622f0a179690fb42b5e3921e94466a14b28919e684a5f44c7b00ca592cff"
+  inputs-digest = "d484d031654d7a069a808372a9fa18c0d9d944899490d630ac3b54e2546d9e20"
   solver-name = "gps-cdcl"
   solver-version = 1

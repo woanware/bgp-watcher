@@ -139,7 +139,6 @@ func (d *Detector) detectAnomlousCountry(dd *DetectData) {
 		if country != firstCountry {
 			fmt.Printf("ALERT ALERT %v : %v # %v # %v # %v\n", dd.Timestamp, firstCountry, country, dd.Paths[i], dd.Paths)
 		}
-
 	}
 }
 

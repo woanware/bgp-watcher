@@ -50,7 +50,7 @@ func (h *History) checkDirectories(ts time.Time) {
 	var month int
 	var err error
 
-	for name, _ := range config.DataSets {
+	for name := range config.DataSets {
 		for i := h.Months - 1; i >= 0; i-- {
 
 			year = int(ts.AddDate(0, -i, 0).Year())
@@ -61,8 +61,6 @@ func (h *History) checkDirectories(ts time.Time) {
 				fmt.Printf("Error validating directory stores (%s/%v/%v): %v", name, year, month, err)
 				continue
 			}
-
-			//h.downloadUpdateFiles(year, month)
 		}
 	}
 }
