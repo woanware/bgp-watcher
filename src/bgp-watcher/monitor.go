@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"sync"
 
 	cron "github.com/robfig/cron"
@@ -50,40 +51,44 @@ func (m *Monitor) check() {
 	m.updating = true
 	defer func() { m.updating = false }()
 
-	files, err := ioutil.ReadDir("./cache/2018/11/")
-	if err != nil {
-		log.Fatal(err)
+	for name := range config.DataSets {
+		files, err := ioutil.ReadDir("./cache/" + name + "/2018/11/")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Now perform the actual downloading concurrently
+		var wg sync.WaitGroup
+		semaphore := make(chan struct{}, m.Processes)
+		fmt.Println(len(files))
+		mrtParser := new(MrtParser)
+		for _, file := range files {
+			wg.Add(1)
+
+			go func(file string) {
+				defer wg.Done()
+
+				semaphore <- struct{}{} // Lock
+				defer func() {
+					<-semaphore // Unlock
+				}()
+
+				if strings.Contains(file, "20181109") == false && strings.Contains(file, "20181110") == false && strings.Contains(file, "20181111") == false && strings.Contains(file, "20181112") == false {
+					return
+				}
+
+				//fmt.Println("Parsing file: " + file.Name())
+				err = mrtParser.Parse(m.detector, name, "./cache/"+name+"/2018/11/"+file)
+				if err != nil {
+					fmt.Printf("Error parsing update file (%s): %v\n", file, err)
+				}
+
+			}(file.Name())
+		}
+		wg.Wait()
 	}
 
-	// Now perform the actual downloading concurrently
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, m.Processes)
-	fmt.Println(len(files))
-	mrtParser := new(MrtParser)
-	for _, file := range files {
-		wg.Add(1)
-
-		go func(file string) {
-			defer wg.Done()
-
-			semaphore <- struct{}{} // Lock
-			defer func() {
-				<-semaphore // Unlock
-			}()
-
-			// if strings.Contains(file, "201811") == false {
-			// 	continue
-			// }
-
-			//fmt.Println("Parsing file: " + file.Name())
-			err = mrtParser.Parse(m.detector, "./cache/2018/11/"+file)
-			if err != nil {
-				fmt.Printf("Error parsing update file (%s): %v\n", file, err)
-			}
-
-		}(file.Name())
-	}
-	wg.Wait()
+	fmt.Println("FINISHED")
 
 	// // Get a constant value for NOW
 	// ts := time.Now()

@@ -18,7 +18,7 @@ type MrtParser struct {
 // ##### Methods ##############################################################
 
 //
-func (b *MrtParser) ParseAndCollect(asns map[uint32]map[string]uint64, filePath string) (map[uint32]map[string]uint64, error) {
+func (b *MrtParser) ParseAndCollect(detector *Detector, asns map[uint32]map[string]uint64, filePath string) (map[uint32]map[string]uint64, error) {
 
 	//asns := make(map[uint32]map[string]uint64)
 
@@ -94,34 +94,43 @@ entries:
 
 							last = asValue.(*bgp.As4PathParam).AS[len(asValue.(*bgp.As4PathParam).AS)-1]
 
-							if last == 34178 {
-
-								fmt.Println(bgp4mp.String())
-								for _, b := range bgpUpdate.NLRI {
-
-									// if d.CheckPrefix(b) == false {
-									// 	continue
-									// }
-
-									fmt.Printf("%v\n", b)
-								}
-								fmt.Printf("-----------------------\n")
-
-								//fmt.Println(bgp4mp.String())
-								//fmt.Println("QINETIQ")
-								//fmt.Printf("%v\n", asValue)
-								//fmt.Printf("-----------------------\n")
-
+							// Is the last part of the path one of ours
+							if detector.CheckTargetAs(last) == true {
 								if asns[bgp4mp.PeerAS] == nil {
 									asns[bgp4mp.PeerAS] = make(map[string]uint64)
 								}
 								asns[bgp4mp.PeerAS][asValue.String()]++
-
-								// for _, e := range asValue.(*bgp.As4PathParam).AS {
-								// 	fmt.Printf("EE1 %v\n", e)
-								// 	//fmt.Printf("FF1 %v\n", f)
-								// }
+								continue entries
 							}
+
+							// if last == 34178 {
+
+							// 	fmt.Println(bgp4mp.String())
+							// 	for _, b := range bgpUpdate.NLRI {
+
+							// 		// if d.CheckPrefix(b) == false {
+							// 		// 	continue
+							// 		// }
+
+							// 		fmt.Printf("%v\n", b)
+							// 	}
+							// 	fmt.Printf("-----------------------\n")
+
+							// 	//fmt.Println(bgp4mp.String())
+							// 	//fmt.Println("QINETIQ")
+							// 	//fmt.Printf("%v\n", asValue)
+							// 	//fmt.Printf("-----------------------\n")
+
+							// 	if asns[bgp4mp.PeerAS] == nil {
+							// 		asns[bgp4mp.PeerAS] = make(map[string]uint64)
+							// 	}
+							// 	asns[bgp4mp.PeerAS][asValue.String()]++
+
+							// 	// for _, e := range asValue.(*bgp.As4PathParam).AS {
+							// 	// 	fmt.Printf("EE1 %v\n", e)
+							// 	// 	//fmt.Printf("FF1 %v\n", f)
+							// 	// }
+							// }
 							//fmt.Printf("LAST2: %v", asValue.(*bgp.As4PathParam).AS[len(asValue.(*bgp.As4PathParam).AS)-1])
 							// for _, e := range asValue.(*bgp.As4PathParam).AS {
 							// 	fmt.Printf("EE1 %v\n", e)
@@ -157,7 +166,7 @@ entries:
 }
 
 //
-func (b *MrtParser) Parse(detector *Detector, filePath string) error {
+func (b *MrtParser) Parse(detector *Detector, name string, filePath string) error {
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -234,7 +243,7 @@ entries:
 							// Is the last part of the path one of ours
 							if detector.CheckTargetAs(last) == true {
 								//fmt.Println(bgp4mp.String())
-								detector.Add(hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
+								detector.Add(name, hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
 								continue entries
 							}
 
@@ -247,7 +256,7 @@ entries:
 
 								//fmt.Println(bgp4mp.String())
 
-								detector.Add(hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
+								detector.Add(name, hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
 								continue entries
 							}
 

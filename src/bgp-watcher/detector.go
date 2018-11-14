@@ -11,6 +11,7 @@ import (
 // ##### Structs ##############################################################
 
 type DetectData struct {
+	Name      string
 	Timestamp time.Time
 	As        uint32
 	PeerIP    net.IP
@@ -96,9 +97,9 @@ func (d *Detector) Start() {
 }
 
 //
-func (d *Detector) Add(timestamp time.Time, as uint32, peerIP net.IP, paths []uint32, nlri []*bgp.IPAddrPrefix) {
+func (d *Detector) Add(name string, timestamp time.Time, as uint32, peerIP net.IP, paths []uint32, nlri []*bgp.IPAddrPrefix) {
 
-	d.queue <- &DetectData{Timestamp: timestamp, As: as, PeerIP: peerIP, Paths: paths, NLRI: nlri}
+	d.queue <- &DetectData{Name: name, Timestamp: timestamp, As: as, PeerIP: peerIP, Paths: paths, NLRI: nlri}
 }
 
 //
@@ -137,7 +138,7 @@ func (d *Detector) detectAnomlousCountry(dd *DetectData) {
 		}
 
 		if country != firstCountry {
-			fmt.Printf("ALERT ALERT %v : %v # %v # %v # %v\n", dd.Timestamp, firstCountry, country, dd.Paths[i], dd.Paths)
+			fmt.Printf("ALERT ALERT %s (%v : %v # %v # %v # %v)\n", dd.Name, dd.Timestamp, firstCountry, country, dd.Paths[i], dd.Paths)
 		}
 	}
 }

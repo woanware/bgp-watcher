@@ -56,22 +56,6 @@ func main() {
 		return
 	}
 
-	// for number, a := range asNames.names {
-	// 	fmt.Printf("%v\n", number)
-	// 	fmt.Printf("%v\n", a.Country)
-	// 	fmt.Printf("%v\n", a.Name)
-	// 	fmt.Printf("%v\n--------------------------------\n", a.Description)
-	// 	//fmt.Printf("%v\npgx", a)
-	// }
-
-	h, err := NewHistory(config.DataSets, config.HistoryMonths, config.Processes)
-	if err != nil {
-		return
-	}
-	h.Update()
-
-	// return
-
 	detector := NewDetector(asNames)
 	for as := range config.TargetAs {
 		detector.AddTargetAs(as)
@@ -79,6 +63,15 @@ func main() {
 	for _, prefix := range config.Prefixes {
 		detector.AddPrefix(prefix)
 	}
+
+	h, err := NewHistory(detector, config.DataSets, config.HistoryMonths, config.Processes)
+	if err != nil {
+		fmt.Printf("Error downloading historical data: %v\n", err)
+		return
+	}
+	h.Update()
+
+	return
 
 	monitor := NewMonitor(detector, config.Processes)
 	monitor.Start()

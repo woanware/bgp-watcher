@@ -19,13 +19,15 @@ type History struct {
 	DataSets  map[string]string
 	Months    int
 	Processes int
+	detector  *Detector
 }
 
 // ##### Methods ##############################################################
 
-func NewHistory(dataSets map[string]string, months int, processes int) (*History, error) {
+func NewHistory(d *Detector, dataSets map[string]string, months int, processes int) (*History, error) {
 
 	return &History{
+		detector:  d,
 		DataSets:  dataSets,
 		Months:    months,
 		Processes: processes,
@@ -39,6 +41,7 @@ func (h *History) Update() {
 	ts := time.Now()
 
 	h.checkDirectories(ts)
+	h.checkFiles(ts)
 	h.download(ts)
 	h.parse(ts)
 }
@@ -60,6 +63,37 @@ func (h *History) checkDirectories(ts time.Time) {
 			if err != nil {
 				fmt.Printf("Error validating directory stores (%s/%v/%v): %v", name, year, month, err)
 				continue
+			}
+		}
+	}
+}
+
+// checkDirectories ensures that the required directory structure has been created
+func (h *History) checkFiles(ts time.Time) {
+
+	var year int
+	var month int
+
+	for name := range config.DataSets {
+		for i := h.Months - 1; i >= 0; i-- {
+
+			year = int(ts.AddDate(0, -i, 0).Year())
+			month = int(ts.AddDate(0, -i, 0).Month())
+
+			files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%s/%v/%v", name, year, month))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for file := range files {
+				err = validateGzipFile(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, file))
+				if err != nil {
+					fmt.Printf("Corrupt update file ./cache/%s/%v/%v/%s", name, year, month, file)
+					err = os.Remove(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, file))
+					if err != nil {
+						fmt.Printf("Error deleting corrupt update file (%s/%v/%v/%s): %v\n", name, year, month, file, err)
+					}
+				}
 			}
 		}
 	}
@@ -130,43 +164,45 @@ func (h *History) parse(ts time.Time) {
 	asns := make(map[uint32]map[string]uint64)
 
 	mrtParser := new(MrtParser)
-	for i := h.Months - 1; i >= 0; i-- {
+	for name := range config.DataSets {
+		for i := h.Months - 1; i >= 0; i-- {
 
-		year = int(ts.AddDate(0, -i, 0).Year())
-		month = int(ts.AddDate(0, -i, 0).Month())
+			year = int(ts.AddDate(0, -i, 0).Year())
+			month = int(ts.AddDate(0, -i, 0).Month())
 
-		files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%v/%v", year, month))
-		if err != nil {
-			log.Fatal(err)
-		}
+			files, err := ioutil.ReadDir(fmt.Sprintf("./cache/%s/%v/%v", name, year, month))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		var wg sync.WaitGroup
-		semaphore := make(chan struct{}, h.Processes)
-		for _, file := range files {
-			wg.Add(1)
+			var wg sync.WaitGroup
+			semaphore := make(chan struct{}, h.Processes)
+			for _, file := range files {
+				wg.Add(1)
 
-			go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
-				defer wg.Done()
+				go func(asns map[uint32]map[string]uint64, year int, month int, filePath string) {
+					defer wg.Done()
 
-				semaphore <- struct{}{} // Lock
-				defer func() {
-					<-semaphore // Unlock
-				}()
+					semaphore <- struct{}{} // Lock
+					defer func() {
+						<-semaphore // Unlock
+					}()
 
-				asns, err = mrtParser.ParseAndCollect(asns, fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
-				if err != nil {
-					if strings.Contains(err.Error(), "gzip: invalid header") == true {
-						err = os.Remove(fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath))
-						if err != nil {
-							fmt.Println("Error deleting malformed BGP file (%s): %v\n", fmt.Sprintf("./cache/%v/%v/%s", year, month, filePath), err)
+					asns, err = mrtParser.ParseAndCollect(h.detector, asns, fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath))
+					if err != nil {
+						if strings.Contains(err.Error(), "gzip: invalid header") == true {
+							err = os.Remove(fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath))
+							if err != nil {
+								fmt.Println("Error deleting malformed BGP file (%s): %v\n", fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, filePath), err)
+							}
+						} else {
+							fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
 						}
-					} else {
-						fmt.Println("Error parsing BGP file (%s): %v\n", filePath, err)
 					}
-				}
-			}(asns, year, month, file.Name())
+				}(asns, year, month, file.Name())
+			}
+			wg.Wait()
 		}
-		wg.Wait()
 	}
 
 	storeUpdates(asns)

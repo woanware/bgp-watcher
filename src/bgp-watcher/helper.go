@@ -97,9 +97,7 @@ func downloadUpdateFile(name string, year int, month int, href string) error {
 		err = DownloadFile(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href),
 			fmt.Sprintf("%s/%v.%02d/%s", RIPE_UPDATES, year, month, href))
 
-		if err != nil {
-			fmt.Printf("Error downloading update file (%s): %v\n", href, err)
-		} else {
+		if err == nil {
 			// Make sure the file header reads OK (gzip)
 			err = validateGzipFile(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href))
 			if err == nil {
@@ -109,6 +107,11 @@ func downloadUpdateFile(name string, year int, month int, href string) error {
 					fmt.Printf("Error moving temp update file to cache (%s): %v\n", href, err)
 				}
 				return false, nil
+			} else {
+				err = os.Remove(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href))
+				if err != nil {
+					fmt.Printf("Error deleting corrupt update file (%s/%v/%v/%s): %v\n", name, year, month, href, err)
+				}
 			}
 		}
 
