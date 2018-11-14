@@ -12,13 +12,16 @@ import (
 	"github.com/jackc/pgx"
 )
 
+// ##### Structs ##############################################################
+
 //
 type History struct {
 	Months    int
 	Processes int
 }
 
-//
+// ##### Methods ##############################################################
+
 func NewHistory(months int, processes int) (*History, error) {
 	return &History{
 		Months:    months,
@@ -145,10 +148,6 @@ func (h *History) parse(ts time.Time) {
 	}
 
 	storeUpdates(asns)
-
-	// for k, v := range asns {
-	// 	fmt.Printf("%v: %v\n", k, v)
-	// }
 
 	fmt.Println("FINISH")
 	fmt.Println(time.Now())

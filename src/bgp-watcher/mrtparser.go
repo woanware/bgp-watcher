@@ -10,34 +10,12 @@ import (
 	bgp "github.com/osrg/gobgp/packet"
 )
 
-// // BGPDump encapuslates downloading and importing of BGP dumps.
-// type BGPDump struct {
-// 	Date time.Time
-// }
-
-// // Path returns the absolute path to the target archive dump download file.
-// func (b *BGPDump) Path() string {
-// 	return filepath.Join(
-// 		b.dir(), fmt.Sprintf("%s.gz", b.Date.Format("20060102")))
-// }
-
-// // Path returns the absolute path to the target archive dump download file.
-// func (b *BGPDump) ParsedPath() string {
-// 	return filepath.Join(
-// 		b.dir(), fmt.Sprintf("%s.json", b.Date.Format("20060102")))
-// }
-
-// func (b *BGPDump) dir() string {
-// 	return filepath.Join(
-// 		dataDir, "cache", b.Date.Format("200601"))
-// }
-
-// func (b *BGPDump) day() string {
-// 	return b.Date.Format("20060102")
-// }
+// ##### Structs ##############################################################
 
 type MrtParser struct {
 }
+
+// ##### Methods ##############################################################
 
 //
 func (b *MrtParser) ParseAndCollect(asns map[uint32]map[string]uint64, filePath string) (map[uint32]map[string]uint64, error) {
@@ -255,7 +233,8 @@ entries:
 
 							// Is the last part of the path one of ours
 							if detector.CheckTargetAs(last) == true {
-								detector.Add(bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
+								//fmt.Println(bgp4mp.String())
+								detector.Add(hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
 								continue entries
 							}
 
@@ -266,7 +245,9 @@ entries:
 									continue
 								}
 
-								detector.Add(bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
+								//fmt.Println(bgp4mp.String())
+
+								detector.Add(hdr.GetTime(), bgp4mp.PeerAS, bgp4mp.PeerIpAddress, asValue.(*bgp.As4PathParam).AS, bgpUpdate.NLRI)
 								continue entries
 							}
 

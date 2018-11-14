@@ -11,10 +11,12 @@ import (
 
 // ##### Constants #####################################################################################################
 
-// App Constants
 const APP_NAME string = "bgp-monitor (bgpm)"
 const APP_VERSION string = "0.0.1"
-const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc00/"
+
+//const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc00/"
+//const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc11/"
+const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc14/"
 const HISTORY_MONTHS int = 6
 
 // ##### Variables #####################################################################################################
@@ -31,64 +33,36 @@ var (
 //
 func main() {
 
-	// asns := make(map[uint32]map[string]uint64)
-	// if asns[1] == nil {
-	// 	asns[1] = make(map[string]uint64)
-	// }
-	// asns[1]["abc"]++
-	// asns[1]["abc"]++
-	// asns[1]["efg"]++
-	// if asns[2] == nil {
-	// 	asns[2] = make(map[string]uint64)
-	// }
-	// asns[2]["zxc"]++
-	// asns[2]["zxc"]++
-	// asns[2]["zxc"]++
-	// asns[2]["zxc"]++
-
-	// for peer, a := range asns {
-	// 	fmt.Println(peer)
-	// 	//fmt.Println(v)
-	// 	//fmt.Println(asns[k])
-
-	// 	for route, count := range a {
-	// 		fmt.Println(route)
-	// 		fmt.Println(count)
-	// 	}
-	// }
-
-	// return
-
 	fmt.Println(fmt.Sprintf("\n%s v%s - woanware\n", APP_NAME, APP_VERSION))
 
 	parseCommandLine()
 	config = LoadConfig()
 	configureDatabase()
 
-	// asNames = NewAsNames()
-	// err := asNames.Update()
-	// if err != nil {
-	// 	fmt.Printf("Error downloading AS data: %v\n", err)
-	// 	return
-	// }
+	asNames = NewAsNames()
+	err := asNames.Update()
+	if err != nil {
+		fmt.Printf("Error downloading AS data: %v\n", err)
+		return
+	}
 
-	// for number, a := range asNames.Names {
+	// for number, a := range asNames.names {
 	// 	fmt.Printf("%v\n", number)
 	// 	fmt.Printf("%v\n", a.Country)
-	// 	fmt.Printf("%v\n",pgx a.Name)
-	// 	fmt.Printf("%v\n--pgx------------------------------\n", a.Description)
+	// 	fmt.Printf("%v\n", a.Name)
+	// 	fmt.Printf("%v\n--------------------------------\n", a.Description)
 	// 	//fmt.Printf("%v\npgx", a)
-	// }pgx
-
-	// h, err := NewHistory(config.HistoryMonths, config.Processes)
-	// if err != nil {
-	// 	return
 	// }
-	// h.Update()
+
+	h, err := NewHistory(config.HistoryMonths, config.Processes)
+	if err != nil {
+		return
+	}
+	h.Update()
 
 	// return
 
-	detector := NewDetector()
+	detector := NewDetector(asNames)
 	for as := range config.TargetAs {
 		detector.AddTargetAs(as)
 	}

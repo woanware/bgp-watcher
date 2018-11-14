@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/robfig/cron"
+	"io/ioutil"
+	"log"
+	"sync"
 )
+
+// ##### Structs ##############################################################
 
 //
 type Monitor struct {
@@ -14,6 +15,8 @@ type Monitor struct {
 	updating  bool
 	detector  *Detector
 }
+
+// ##### Methods ##############################################################
 
 //
 func NewMonitor(d *Detector, processes int) *Monitor {
@@ -28,9 +31,11 @@ func (m *Monitor) Start() {
 
 	m.detector.Start()
 
-	c := cron.New()
-	c.AddFunc("@every 1m", m.check)
-	c.Start()
+	// c := cron.New()
+	// c.AddFunc("@every 1m", m.check)
+	// c.Start()
+
+	m.check()
 }
 
 //
@@ -43,23 +48,40 @@ func (m *Monitor) check() {
 	m.updating = true
 	defer func() { m.updating = false }()
 
-	root := "./cache"
-	var files []string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		files = append(files, path)
-		return nil
-	})
+	files, err := ioutil.ReadDir("./cache/2018/11/")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	// Now perform the actual downloading concurrently
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, m.Processes)
+	fmt.Println(len(files))
 	mrtParser := new(MrtParser)
 	for _, file := range files {
-		//fmt.Println("Parsing file: " + file)
-		err = mrtParser.Parse(m.detector, file)
-		if err != nil {
-			fmt.Printf("Error parsing update file (%s): %v\n", file, err)
-		}
+		wg.Add(1)
+
+		go func(file string) {
+			defer wg.Done()
+
+			semaphore <- struct{}{} // Lock
+			defer func() {
+				<-semaphore // Unlock
+			}()
+
+			// if strings.Contains(file, "201811") == false {
+			// 	continue
+			// }
+
+			//fmt.Println("Parsing file: " + file.Name())
+			err = mrtParser.Parse(m.detector, "./cache/2018/11/"+file)
+			if err != nil {
+				fmt.Printf("Error parsing update file (%s): %v\n", file, err)
+			}
+
+		}(file.Name())
 	}
+	wg.Wait()
 
 	// // Get a constant value for NOW
 	// ts := time.Now()

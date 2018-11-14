@@ -3,23 +3,29 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 
 	bgp "github.com/osrg/gobgp/packet"
 )
 
+// ##### Structs ##############################################################
+
 type DetectData struct {
-	As     uint32
-	PeerIP net.IP
-	Paths  []uint32
-	NLRI   []*bgp.IPAddrPrefix
+	Timestamp time.Time
+	As        uint32
+	PeerIP    net.IP
+	Paths     []uint32
+	NLRI      []*bgp.IPAddrPrefix
 }
 
 type Detector struct {
 	asNames  *AsNames
-	queue    chan *UpdateData
+	queue    chan *DetectData
 	targetAs map[uint32]struct{}
 	prefixes map[*bgp.IPAddrPrefix]struct{}
 }
+
+// ##### Methods ##############################################################
 
 func NewDetector(an *AsNames) *Detector {
 
@@ -33,7 +39,7 @@ func NewDetector(an *AsNames) *Detector {
 //
 func (d *Detector) initialise() {
 
-	d.queue = make(chan *UpdateData)
+	d.queue = make(chan *DetectData)
 	d.targetAs = make(map[uint32]struct{})
 	d.prefixes = make(map[*bgp.IPAddrPrefix]struct{})
 }
@@ -78,32 +84,78 @@ func (d *Detector) Start() {
 		for {
 			dd = <-d.queue
 
-			fmt.Printf("DETECT1 %v\n", ud.As)
-			fmt.Printf("DETECT 2%v\n", ud.PeerIP)
-			fmt.Printf("DETECT3 %v\n", ud.NLRI)
-			fmt.Printf("DETECT4 %v\n", ud.Paths)
+			//fmt.Printf("DETECT1 %v\n", ud.As)
+			//fmt.Printf("DETECT 2%v\n", ud.PeerIP)
+			//fmt.Printf("DETECT3 %v\n", ud.NLRI)
+			//fmt.Printf("DETECT4 %v\n", ud.Paths)
 
-			go detect(dd)
+			go d.detect(dd)
 			dd = nil
 		}
 	}()
 }
 
 //
-func (d *Detector) Add(as uint32, peerIP net.IP, paths []uint32, nlri []*bgp.IPAddrPrefix) {
+func (d *Detector) Add(timestamp time.Time, as uint32, peerIP net.IP, paths []uint32, nlri []*bgp.IPAddrPrefix) {
 
-	d.queue <- &UpdateData{As: as, PeerIP: peerIP, Paths: paths, NLRI: nlri}
+	d.queue <- &DetectData{Timestamp: timestamp, As: as, PeerIP: peerIP, Paths: paths, NLRI: nlri}
 }
 
+//
 func (d *Detector) detect(dd *DetectData) {
 
+	d.detectAnomlousCountry(dd)
 }
 
+//
 func (d *Detector) detectAnomlousCountry(dd *DetectData) {
 
-	// Get first AS Country
+	// If the path length equals two then no middle AS
+	if len(dd.Paths) == 2 {
+		return
+	}
+
+	firstAs := dd.Paths[0]
+	firstCountry := d.asNames.Country(uint32(firstAs))
 
 	// Get last AS Country
+	lastAs := dd.Paths[len(dd.Paths)-1]
+	lastCountry := d.asNames.Country(lastAs)
 
-	// Check the country of the intermedant routes
+	// If the AS countries are the same then we cannot really check the middle routes
+	if firstCountry != lastCountry {
+		return
+	}
+
+	// Check the country of the intermediary routes
+	var country string
+	for i := 1; i < len(dd.Paths); i++ {
+		country = d.asNames.Country(dd.Paths[i])
+
+		if len(country) == 0 {
+			continue
+		}
+
+		if country != firstCountry {
+			fmt.Printf("ALERT ALERT %v : %v # %v # %v # %v\n", dd.Timestamp, firstCountry, country, dd.Paths[i], dd.Paths)
+		}
+
+	}
+}
+
+//
+func (d *Detector) detectAnomlousPeer(dd *DetectData) {
+
+	// Get last AS Country
+	lastAs := dd.Paths[len(dd.Paths)-1]
+	correctTarget := d.CheckTargetAs(lastAs)
+	//lastCountry := d.asNames.Country(lastAs)
+
+	// Is one of the prefixes one of ours
+	for _, n := range dd.NLRI {
+
+		if d.CheckPrefix(n) == false {
+			fmt.Printf("ALERT PRERFEXCX %v : %v # %v\n", dd.Timestamp, correctTarget, n)
+		}
+	}
 }

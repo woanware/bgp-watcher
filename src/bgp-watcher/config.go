@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ##### Structs ##############################################################
+
 // Config holds configuration data for the application
 type Config struct {
 	DatabaseServer   string
@@ -21,6 +23,8 @@ type Config struct {
 	NeighbourPeers   map[uint32]struct{}
 	Prefixes         []*bgp.IPAddrPrefix
 }
+
+// ##### Methods ##############################################################
 
 // LoadConfig loads the configuration data from the "bgpm" config file
 func LoadConfig() *Config {
@@ -83,6 +87,10 @@ func LoadConfig() *Config {
 
 		bit, err = ConvertStringToUint8(parts[1])
 		if err != nil {
+			log.Fatalf("Invalid prefix bit: %s\n", parts[1])
+		}
+
+		if bit > 32 {
 			log.Fatalf("Invalid prefix bit: %s\n", parts[1])
 		}
 
