@@ -15,12 +15,6 @@ import (
 // ##### Structs ##############################################################
 
 //
-type HistoryStore struct {
-	mux  sync.Mutex
-	data map[uint32]map[string]uint64
-}
-
-//
 type History struct {
 	DataSets  map[string]string
 	Months    int
@@ -31,24 +25,31 @@ type History struct {
 // ##### Methods ##############################################################
 
 //
-func (hs *HistoryStore) Set(as uint32, route string) {
-
-	hs.mux.Lock()
-	if hs.data[as] == nil {
-		hs.data[as] = make(map[string]uint64)
-	}
-	hs.data[as][route]++
-	defer hs.mux.Unlock()
-}
-
-func NewHistory(d *Detector, dataSets map[string]string, months int, processes int) (*History, error) {
+func NewHistory(d *Detector, dataSets map[string]string, months int, processes int) *History {
 
 	return &History{
 		detector:  d,
 		DataSets:  dataSets,
 		Months:    months,
 		Processes: processes,
-	}, nil
+	}
+}
+
+//
+func (h *History) Existing() bool {
+
+	files, err := ioutil.ReadDir("./cache/")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(len(files))
+
+	if len(files) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // Downloads and loads/parses the BGP update files
@@ -158,7 +159,7 @@ func (h *History) downloadUpdateFiles(name string, url string, year int, month i
 			}()
 
 			fmt.Printf("Uncached update file (%s): %s\n", name, fileName)
-			err = downloadUpdateFile(name, year, month, fileName)
+			err = downloadUpdateFile(name, url, year, month, fileName)
 			if err != nil {
 				fmt.Printf("Error downloading update file (%s): %v\n", fileName, err)
 			} else {
@@ -233,6 +234,12 @@ func (h *History) parse(ts time.Time) {
 //
 func storeUpdates(historyStore *HistoryStore) {
 
+	// Truncate table
+	_, err := pool.Exec("truncate table routes")
+	if err != nil {
+		fmt.Printf("Error truncating historic data: %v\n", err)
+	}
+
 	var rows [][]interface{}
 
 	for peer, a := range historyStore.data {
@@ -241,7 +248,7 @@ func storeUpdates(historyStore *HistoryStore) {
 		}
 	}
 
-	_, err := db.CopyFrom(
+	_, err = pool.CopyFrom(
 		pgx.Identifier{"routes"},
 		[]string{"peer_as", "route", "count"},
 		pgx.CopyFromRows(rows))

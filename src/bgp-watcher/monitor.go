@@ -14,9 +14,10 @@ import (
 
 //
 type Monitor struct {
-	Processes int
-	updating  bool
-	detector  *Detector
+	Processes    int
+	updating     bool
+	historyStore *HistoryStore
+	detector     *Detector
 }
 
 // ##### Methods ##############################################################
@@ -33,12 +34,39 @@ func NewMonitor(d *Detector, processes int) *Monitor {
 func (m *Monitor) Start() {
 
 	m.detector.Start()
-
+	m.load()
 	c := cron.New()
 	c.AddFunc("@every 1m", m.check)
 	// c.Start()
 
 	m.check()
+}
+
+//
+func (m *Monitor) load() {
+
+	m.historyStore = &HistoryStore{data: make(map[uint32]map[string]uint64)}
+
+	rows, err := pool.Query("select peer_as, route, count from routes")
+	if err != nil {
+		fmt.Printf("Error loading historical data: %v\n", err)
+		return
+	}
+	defer rows.Close()
+
+	var peerAs uint32
+	var route string
+	var count uint64
+
+	for rows.Next() {
+		err = rows.Scan(&peerAs, &route, &count)
+		if err != nil {
+			fmt.Printf("Error loading historical data row: %v\n", err)
+			continue
+		}
+
+		m.historyStore.SetCount(peerAs, route, count)
+	}
 }
 
 //
@@ -51,7 +79,10 @@ func (m *Monitor) check() {
 	m.updating = true
 	defer func() { m.updating = false }()
 
+	historyStore := new(HistoryStore)
+
 	for name := range config.DataSets {
+
 		files, err := ioutil.ReadDir("./cache/" + name + "/2018/11/")
 		if err != nil {
 			log.Fatal(err)
@@ -78,7 +109,7 @@ func (m *Monitor) check() {
 				}
 
 				//fmt.Println("Parsing file: " + file.Name())
-				err = mrtParser.Parse(m.detector, name, "./cache/"+name+"/2018/11/"+file)
+				historyStore, err = mrtParser.ParseAndDetect(m.detector, name, "./cache/"+name+"/2018/11/"+file)
 				if err != nil {
 					fmt.Printf("Error parsing update file (%s): %v\n", file, err)
 				}
@@ -86,6 +117,13 @@ func (m *Monitor) check() {
 			}(file.Name())
 		}
 		wg.Wait()
+	}
+
+	// Now update our historical data
+	for peer, a := range historyStore.data {
+		for route, count := range a {
+			m.historyStore.SetAdd(peer, route, count)
+		}
 	}
 
 	fmt.Println("FINISHED")
@@ -122,10 +160,10 @@ func (m *Monitor) check() {
 	// 		if err != nil {
 	// 			fmt.Printf("Error downloading update file (%s): %v\n", fileName, err)
 	// 		} else {
-	// 			err = mrtParser.Parse(m.detector, fmt.Sprintf("./cache/%v/%v/%s", year, month, fileName))
-	// 			if err != nil {
-	// 				fmt.Printf("Error parsing update file (%s): %v\n", fileName, err)
-	// 			}
+	// 			historyStore, err = mrtParser.ParseAndDetect(m.detector, name, "./cache/"+name+"/2018/11/"+file)
+	// if err != nil {
+	// 	fmt.Printf("Error parsing update file (%s): %v\n", file, err)
+	// }
 	// 		}
 	// 	}(year, month, file)
 	// }

@@ -22,17 +22,18 @@ type DataSets struct {
 
 // Config holds configuration data for the application
 type Config struct {
-	DatabaseServer   string
-	DatabasePort     int
-	DatabaseUsername string
-	DatabasePassword string
-	Database         string
-	HistoryMonths    int
-	Processes        int
-	DataSets         map[string]string
-	TargetAs         map[uint32]struct{}
-	NeighbourPeers   map[uint32]struct{}
-	Prefixes         []*bgp.IPAddrPrefix
+	DatabaseServer      string
+	DatabasePort        int
+	DatabaseUsername    string
+	DatabasePassword    string
+	Database            string
+	HistoryMonths       int
+	Processes           int
+	DataSets            map[string]string
+	MonitorCountryCodes map[string]struct{}
+	TargetAs            map[uint32]struct{}
+	NeighbourPeers      map[uint32]struct{}
+	Prefixes            []*bgp.IPAddrPrefix
 }
 
 // ##### Methods ##############################################################
@@ -59,6 +60,7 @@ func parseConfiguration() *Config {
 	config := new(Config)
 
 	config.DataSets = make(map[string]string)
+	config.MonitorCountryCodes = make(map[string]struct{})
 	config.TargetAs = make(map[uint32]struct{})
 	config.NeighbourPeers = make(map[uint32]struct{})
 	config.Prefixes = make([]*bgp.IPAddrPrefix, 0)
@@ -117,6 +119,12 @@ func parseConfiguration() *Config {
 		}
 
 		config.Prefixes = append(config.Prefixes, bgp.NewIPAddrPrefix(bit, parts[0]))
+	}
+
+	// Convert string slice values (Target AS's) into uint32
+	temp = configReader.GetStringSlice("monitor_country_codes")
+	for _, t := range temp {
+		config.MonitorCountryCodes[t] = struct{}{}
 	}
 
 	// Decode the data set info (name, URL)

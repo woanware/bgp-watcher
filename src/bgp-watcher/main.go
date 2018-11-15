@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"sync"
+	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx"
 	flags "github.com/jessevdk/go-flags"
@@ -15,17 +16,12 @@ import (
 const APP_NAME string = "bgp-monitor (bgpm)"
 const APP_VERSION string = "0.0.1"
 
-//const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc00/"
-//const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc11/"
-const RIPE_UPDATES string = "http://data.ris.ripe.net/rrc14/"
-const HISTORY_MONTHS int = 6
-
 // ##### Variables #####################################################################################################
 
 var (
 	configReader *viper.Viper
 	config       *Config
-	db           *pgx.Conn
+	pool         *pgx.ConnPool
 	options      Options
 	asNames      *AsNames
 )
@@ -42,13 +38,6 @@ func main() {
 	config = parseConfiguration()
 	configureDatabase()
 
-	// for name, url := range config.DataSets {
-	// 	fmt.Println(name)
-	// 	fmt.Println(url)
-	// }
-
-	// return
-
 	asNames = NewAsNames()
 	err := asNames.Update()
 	if err != nil {
@@ -57,6 +46,9 @@ func main() {
 	}
 
 	detector := NewDetector(asNames)
+	for cc := range config.MonitorCountryCodes {
+		detector.AddMonitorCountryCode(cc)
+	}
 	for as := range config.TargetAs {
 		detector.AddTargetAs(as)
 	}
@@ -64,22 +56,33 @@ func main() {
 		detector.AddPrefix(prefix)
 	}
 
-	h, err := NewHistory(detector, config.DataSets, config.HistoryMonths, config.Processes)
-	if err != nil {
-		fmt.Printf("Error downloading historical data: %v\n", err)
-		return
+	h := NewHistory(detector, config.DataSets, config.HistoryMonths, config.Processes)
+	if h.Existing() == false {
+		h.Update()
 	}
-	h.Update()
 
 	return
 
 	monitor := NewMonitor(detector, config.Processes)
 	monitor.Start()
 
-	// Stop application from exiting
-	var wg sync.WaitGroup
-	wg.Add(1)
-	wg.Wait()
+	// // Stop application from exiting
+	// var wg sync.WaitGroup
+	// wg.Add(1)
+	// wg.Wait()
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		_ = <-sigs
+		done <- true
+	}()
+
+	<-done
+	fmt.Println("exiting")
 }
 
 //
@@ -99,19 +102,48 @@ func parseCommandLine() {
 //
 func configureDatabase() {
 
-	c, err := pgx.ParseDSN(fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable",
-		config.DatabaseServer, config.DatabasePort, config.Database, config.DatabaseUsername, config.DatabasePassword))
+	connPoolConfig := pgx.ConnPoolConfig{
+		ConnConfig: pgx.ConnConfig{
+			Host:     config.DatabaseServer,
+			User:     config.DatabaseUsername,
+			Password: config.DatabasePassword,
+			Database: config.Database,
+			//Logger:   logger,
+		},
+		MaxConnections: 5,
+		AfterConnect:   configurePreparedStatements,
+	}
 
+	var err error
+	pool, err = pgx.NewConnPool(connPoolConfig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing database config: %v\n", err)
+		fmt.Printf("Unable to create connection pool: %v\n", err)
 		os.Exit(1)
 	}
 
-	db, err = pgx.Connect(c)
+	// c, err := pgx.ParseDSN(fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable",
+	// 	config.DatabaseServer, config.DatabasePort, config.Database, config.DatabaseUsername, config.DatabasePassword))
+
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Error parsing database config: %v\n", err)
+	// 	os.Exit(1)
+	// }
+
+	// db, err = pgx.Connect(c)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+	// 	os.Exit(1)
+	// }
+}
+
+func configurePreparedStatements(conn *pgx.Conn) (err error) {
+
+	_, err = conn.Prepare("get_route_count", `select count from routes where peer_as=$1 and route=$2`)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
-		os.Exit(1)
+		fmt.Printf("Error preparing 'get_route_count' statement: %v\n", err)
 	}
+
+	return
 }
 
 //

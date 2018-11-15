@@ -88,29 +88,29 @@ func getUpdateFiles(name string, url string, year int, month int) ([]string, err
 }
 
 // Performs the actual BGP update file downloading
-func downloadUpdateFile(name string, year int, month int, href string) error {
+func downloadUpdateFile(name string, url string, year int, month int, href string) error {
 
 	err := try.Do(func(attempt int) (bool, error) {
 		var err error
 
 		// Download the file to the "temp" directory
-		err = DownloadFile(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href),
-			fmt.Sprintf("%s/%v.%02d/%s", RIPE_UPDATES, year, month, href))
+		err = DownloadFile(fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href),
+			fmt.Sprintf("%s/%d.%02d/%s", url, year, month, href))
 
 		if err == nil {
 			// Make sure the file header reads OK (gzip)
-			err = validateGzipFile(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href))
+			err = validateGzipFile(fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href))
 			if err == nil {
 				// Move the file to the "cache" directory
-				err = os.Rename(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href), fmt.Sprintf("./cache/%s/%v/%v/%s", name, year, month, href))
+				err = os.Rename(fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href), fmt.Sprintf("./cache/%s/%d/%d/%s", name, year, month, href))
 				if err != nil {
 					fmt.Printf("Error moving temp update file to cache (%s): %v\n", href, err)
 				}
 				return false, nil
 			} else {
-				err = os.Remove(fmt.Sprintf("./temp/%s/%v/%v/%s", name, year, month, href))
+				err = os.Remove(fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href))
 				if err != nil {
-					fmt.Printf("Error deleting corrupt update file (%s/%v/%v/%s): %v\n", name, year, month, href, err)
+					fmt.Printf("Error deleting corrupt update file (%s/%d/%d/%s): %v\n", name, year, month, href, err)
 				}
 			}
 		}
@@ -164,7 +164,7 @@ func ConvertStringToUint8(data string) (uint8, error) {
 	return uint8(ret), nil
 }
 
-// Converts a string to an uint32
+// ConvertStringToUint32 converts a string to an uint32
 func ConvertStringToUint32(data string) (uint32, error) {
 
 	ret, err := strconv.ParseInt(data, 10, 32)
@@ -174,15 +174,30 @@ func ConvertStringToUint32(data string) (uint32, error) {
 	return uint32(ret), nil
 }
 
-//
-func outputAlert(ap AlertPriority, alert string) {
+// convertAsPath returns the integer value path route as a string
+func convertAsPath(path []uint32) string {
+
+	temp := []byte{}
+	for _, n := range path {
+		temp = strconv.AppendInt(temp, int64(n), 10)
+		temp = append(temp, ' ')
+	}
+	temp = temp[:len(temp)-1]
+
+	return string(temp)
+}
+
+// printAlert prints a formatted, coloured message to StdOut
+func printAlert(ap AlertPriority, timestamp string, peerAs uint32, path string, reason string, data string) {
 
 	switch ap {
 	case PriorityHigh:
-		color.Println(color.Red(alert))
+		color.Println(color.Red(fmt.Sprintf("Timestamp: %s\nReason: %s\nPeer AS: %d\nPath: %s\nData: %s\n", timestamp, reason, peerAs, path, data)))
+
 	case PriorityMedium:
-		color.Println(color.Yellow(alert))
+		color.Println(color.Yellow(fmt.Sprintf("Timestamp: %s\nReason: %s\nPeer AS: %d\nPath: %s\nData: %s\n", timestamp, reason, peerAs, path, data)))
+
 	case PriorityLow:
-		color.Println(color.Green(alert))
+		color.Println(color.Green(fmt.Sprintf("Timestamp: %s\nReason: %s\nPeer AS: %d\nPath: %s\nData: %s\n", timestamp, reason, peerAs, path, data)))
 	}
 }
