@@ -104,7 +104,9 @@ func (m *Monitor) check() {
 					<-semaphore // Unlock
 				}()
 
-				if strings.Contains(file, "20181109") == false && strings.Contains(file, "20181110") == false && strings.Contains(file, "20181111") == false && strings.Contains(file, "20181112") == false {
+				if strings.Contains(file, "20181109") == false && strings.Contains(file, "20181110") == false &&
+					strings.Contains(file, "20181111") == false && strings.Contains(file, "20181112") == false &&
+					strings.Contains(file, "20181113") == false && strings.Contains(file, "20181114") == false {
 					return
 				}
 

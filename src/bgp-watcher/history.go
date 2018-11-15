@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/jackc/pgx"
 )
 
 // ##### Structs ##############################################################
@@ -225,36 +223,8 @@ func (h *History) parse(ts time.Time) {
 		}
 	}
 
-	storeUpdates(historyStore)
+	historyStore.Persist()
 
 	fmt.Println("FINISH")
 	fmt.Println(time.Now())
-}
-
-//
-func storeUpdates(historyStore *HistoryStore) {
-
-	// Truncate table
-	_, err := pool.Exec("truncate table routes")
-	if err != nil {
-		fmt.Printf("Error truncating historic data: %v\n", err)
-	}
-
-	var rows [][]interface{}
-
-	for peer, a := range historyStore.data {
-		for route, count := range a {
-			rows = append(rows, []interface{}{peer, route, count})
-		}
-	}
-
-	_, err = pool.CopyFrom(
-		pgx.Identifier{"routes"},
-		[]string{"peer_as", "route", "count"},
-		pgx.CopyFromRows(rows))
-
-	if err != nil {
-		fmt.Printf("Error inserting historic data: %v\n", err)
-		return
-	}
 }

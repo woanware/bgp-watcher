@@ -61,16 +61,10 @@ func main() {
 		h.Update()
 	}
 
-	return
-
 	monitor := NewMonitor(detector, config.Processes)
 	monitor.Start()
 
-	// // Stop application from exiting
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	// wg.Wait()
-
+	// Ensure the application does not exit and we capture CTRL-C
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 
@@ -80,9 +74,11 @@ func main() {
 		_ = <-sigs
 		done <- true
 	}()
-
 	<-done
-	fmt.Println("exiting")
+
+	fmt.Println("Persisting historic data")
+	monitor.historyStore.Persist()
+	fmt.Println("Persistance complete")
 }
 
 //

@@ -77,6 +77,7 @@ func (d *Detector) CheckTargetAs(as uint32) bool {
 	return false
 }
 
+//
 func (d *Detector) CheckPrefix(prefix *bgp.IPAddrPrefix) bool {
 
 	if _, ok := d.prefixes[prefix]; ok {
@@ -104,12 +105,6 @@ func (d *Detector) Start() {
 
 		for {
 			dd = <-d.queue
-
-			//fmt.Printf("DETECT1 %v\n", ud.As)
-			//fmt.Printf("DETECT 2%v\n", ud.PeerIP)
-			//fmt.Printf("DETECT3 %v\n", ud.NLRI)
-			//fmt.Printf("DETECT4 %v\n", ud.Paths)
-
 			go d.detect(dd)
 			dd = nil
 		}
@@ -117,7 +112,8 @@ func (d *Detector) Start() {
 }
 
 //
-func (d *Detector) Add(name string, timestamp time.Time, as uint32, peerIP net.IP, pathsString string, paths []uint32, nlri []*bgp.IPAddrPrefix) {
+func (d *Detector) Add(name string, timestamp time.Time, as uint32, peerIP net.IP,
+	pathsString string, paths []uint32, nlri []*bgp.IPAddrPrefix) {
 
 	d.queue <- &DetectData{Name: name, Timestamp: timestamp, As: as, PeerIP: peerIP, PathsString: pathsString, Paths: paths, NLRI: nlri}
 }
