@@ -24,6 +24,7 @@ var (
 	pool         *pgx.ConnPool
 	options      Options
 	asNames      *AsNames
+	history      *History
 )
 
 // ##### Methods ##############################################################
@@ -45,20 +46,13 @@ func main() {
 		return
 	}
 
-	detector := NewDetector(asNames)
-	for cc := range config.MonitorCountryCodes {
-		detector.AddMonitorCountryCode(cc)
-	}
-	for as := range config.TargetAs {
-		detector.AddTargetAs(as)
-	}
-	for _, prefix := range config.Prefixes {
-		detector.AddPrefix(prefix)
-	}
-
-	h := NewHistory(detector, config.DataSets, config.HistoryMonths, config.Processes)
-	if h.Existing() == false {
-		h.Update()
+	history = &History{data: make(map[uint32]map[string]uint64)}
+	detector := NewDetector(config)
+	historic := NewHistoric(detector, config)
+	if historic.Existing() == false {
+		historic.Update()
+	} else {
+		history.Load()
 	}
 
 	monitor := NewMonitor(detector, config.Processes)
@@ -77,7 +71,7 @@ func main() {
 	<-done
 
 	fmt.Println("Persisting historic data")
-	monitor.historyStore.Persist()
+	history.Persist()
 	fmt.Println("Persistance complete")
 }
 

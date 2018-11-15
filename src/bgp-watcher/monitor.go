@@ -14,10 +14,9 @@ import (
 
 //
 type Monitor struct {
-	Processes    int
-	updating     bool
-	historyStore *HistoryStore
-	detector     *Detector
+	Processes int
+	updating  bool
+	detector  *Detector
 }
 
 // ##### Methods ##############################################################
@@ -45,8 +44,6 @@ func (m *Monitor) Start() {
 //
 func (m *Monitor) load() {
 
-	m.historyStore = &HistoryStore{data: make(map[uint32]map[string]uint64)}
-
 	rows, err := pool.Query("select peer_as, route, count from routes")
 	if err != nil {
 		fmt.Printf("Error loading historical data: %v\n", err)
@@ -65,7 +62,7 @@ func (m *Monitor) load() {
 			continue
 		}
 
-		m.historyStore.SetCount(peerAs, route, count)
+		history.SetCount(peerAs, route, count)
 	}
 }
 
@@ -79,7 +76,7 @@ func (m *Monitor) check() {
 	m.updating = true
 	defer func() { m.updating = false }()
 
-	historyStore := new(HistoryStore)
+	tempHistory := new(History)
 
 	for name := range config.DataSets {
 
@@ -111,7 +108,7 @@ func (m *Monitor) check() {
 				}
 
 				//fmt.Println("Parsing file: " + file.Name())
-				historyStore, err = mrtParser.ParseAndDetect(m.detector, name, "./cache/"+name+"/2018/11/"+file)
+				tempHistory, err = mrtParser.ParseAndDetect(m.detector, name, "./cache/"+name+"/2018/11/"+file)
 				if err != nil {
 					fmt.Printf("Error parsing update file (%s): %v\n", file, err)
 				}
@@ -121,10 +118,10 @@ func (m *Monitor) check() {
 		wg.Wait()
 	}
 
-	// Now update our historical data
-	for peer, a := range historyStore.data {
+	// Now update our data to the primary history object
+	for peer, a := range tempHistory.data {
 		for route, count := range a {
-			m.historyStore.SetAdd(peer, route, count)
+			history.SetAdd(peer, route, count)
 		}
 	}
 

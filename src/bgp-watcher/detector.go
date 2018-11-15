@@ -22,7 +22,7 @@ type DetectData struct {
 }
 
 type Detector struct {
-	asNames             *AsNames
+	//asNames             *AsNames
 	queue               chan *DetectData
 	targetAs            map[uint32]struct{}
 	monitorCountryCodes map[string]struct{}
@@ -31,11 +31,20 @@ type Detector struct {
 
 // ##### Methods ##############################################################
 
-func NewDetector(an *AsNames) *Detector {
+func NewDetector(config *Config) *Detector {
 
 	d := new(Detector)
-	d.asNames = an
 	d.initialise()
+
+	for cc := range config.MonitorCountryCodes {
+		d.AddMonitorCountryCode(cc)
+	}
+	for as := range config.TargetAs {
+		d.AddTargetAs(as)
+	}
+	for _, prefix := range config.Prefixes {
+		d.AddPrefix(prefix)
+	}
 
 	return d
 }
@@ -145,11 +154,11 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 	}
 
 	firstAs := dd.Paths[0]
-	firstCountry := d.asNames.Country(uint32(firstAs))
+	firstCountry := asNames.Country(uint32(firstAs))
 
 	// Get last AS Country
 	lastAs := dd.Paths[len(dd.Paths)-1]
-	lastCountry := d.asNames.Country(lastAs)
+	lastCountry := asNames.Country(lastAs)
 
 	// If the AS countries are the same then we cannot really check the middle routes
 	if firstCountry != lastCountry {
@@ -163,7 +172,7 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 
 	// Check the country of the intermediary routes
 	for i := 1; i < len(dd.Paths); i++ {
-		country = d.asNames.Country(dd.Paths[i])
+		country = asNames.Country(dd.Paths[i])
 
 		if len(country) == 0 {
 			continue
