@@ -134,7 +134,7 @@ func (m *Monitor) check() {
 				if err != nil {
 					fmt.Printf("Error downloading update file (%s): %v\n", fileName, err)
 				} else {
-					tempHistory, err = mrtParser.ParseAndDetect(m.detector, name, fmt.Sprintf("./cache/%s/%d/%d/", name, year, month, fileName))
+					tempHistory, err = mrtParser.ParseAndDetect(m.detector, name, fmt.Sprintf("./cache/%s/%d/%d/%s", name, year, month, fileName))
 					if err != nil {
 						fmt.Printf("Error parsing update file (%s): %v\n", file, err)
 					}
