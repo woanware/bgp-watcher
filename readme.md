@@ -28,6 +28,7 @@ bgp-monitor is a prototype system designed to monitor specific AS's and their as
 - Checks BGP paths for internal country routes e.g. UK->UK, US->US etc, spots peers in routes that look "odd"
 - Checks for BGP updates that announce peers for prefixes that don't belong to them
 - Checks for BGP updates that have low frequency e.g. using our downloaded historic data
+- Checks that the sending peer is the first peer on the path. Not sure if this is even possible :-)
 
 ## FAQ
 

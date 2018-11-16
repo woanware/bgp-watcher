@@ -134,13 +134,19 @@ func (d *Detector) detect(dd *DetectData) {
 		return
 	}
 
-	ret = d.isAnomlousPeer(dd)
+	ret = d.isAnomlousPrefix(dd)
 	if ret == true {
 		// We raised an alert so don't process further
 		return
 	}
 
 	ret = d.isLowFrequency(dd)
+	if ret == true {
+		// We raised an alert so don't process further
+		return
+	}
+
+	ret = d.isAnomlousPeer(dd)
 	if ret == true {
 		// We raised an alert so don't process further
 		return
@@ -186,8 +192,8 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 			// If country is in monitor list then alert
 			if d.CheckMonitorCountryCode(country) == true {
 
-				printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[i], convertAsPath(dd.Paths), "Monitored Country",
-					fmt.Sprintf("Internal Route: %s\nExternal Country: %s", firstCountry, country))
+				printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, convertAsPath(dd.Paths), "Monitored Country",
+					fmt.Sprintf("Internal Route: %s\nExternal Country: %s (%d)", firstCountry, country, dd.Paths[i]))
 				ret = true
 				continue
 			}
@@ -227,7 +233,7 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 }
 
 //
-func (d *Detector) isAnomlousPeer(dd *DetectData) bool {
+func (d *Detector) isAnomlousPrefix(dd *DetectData) bool {
 
 	// Get the last AS and check if it is one of ours, if so exit, else continue checking our prefixes
 	lastAs := dd.Paths[len(dd.Paths)-1]
@@ -241,7 +247,7 @@ func (d *Detector) isAnomlousPeer(dd *DetectData) bool {
 	for _, n := range dd.NLRI {
 
 		if d.CheckPrefix(n) == true {
-			printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[0], dd.PathsString, "Invalid Prefix Peer",
+			printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Invalid Prefix Peer",
 				fmt.Sprintf("Prefix: %s", n))
 
 			ret = true
@@ -266,6 +272,21 @@ func (d *Detector) isLowFrequency(dd *DetectData) bool {
 
 	} else if count > 5 && count < 10 {
 		printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Moderate Frequency", "")
+		return true
+	}
+
+	return false
+}
+
+// isAnomlousPeer checks that the sending peer is the
+// first peer on the path. Not sure if this is even possible :-)
+func (d *Detector) isAnomlousPeer(dd *DetectData) bool {
+
+	if dd.Paths[0] != dd.PeerAs {
+		country := asNames.Country(uint32(dd.Paths[0]))
+
+		printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, convertAsPath(dd.Paths), "Rogue First Peer",
+			fmt.Sprintf("First Peer: %d (%s)", dd.Paths[0], country))
 		return true
 	}
 
