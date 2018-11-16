@@ -23,7 +23,13 @@ bgp-monitor is a prototype system designed to monitor specific AS's and their as
 - Updates historical data with new data
 - On shutdown the historical data is persisted to postgres
 
+## Detection
+
+- Checks BGP paths for internal country routes e.g. UK->UK, US->US etc, spots peers in routes that look "odd"
+- Checks for BGP updates that announce peers for prefixes that don't belong to them
+- Checks for BGP updates that have low frequency e.g. using our downloaded historic data
+
 ## FAQ
 
-1. - Would it alert on the recent Google "hijack"
+1. - Would it alert on the recent Google "hijack" (https://arstechnica.com/information-technology/2018/11/major-bgp-mishap-takes-down-google-as-traffic-improperly-travels-to-china/)
    - Yes
