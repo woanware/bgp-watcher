@@ -77,7 +77,7 @@ func main() {
 	}()
 	<-done
 
-	fmt.Println("Persisting historic data")
+	fmt.Printf("\nPersisting historic data\n")
 	history.Persist()
 	fmt.Println("Persistance complete")
 }

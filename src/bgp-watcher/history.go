@@ -3,10 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 
 	pgx "github.com/jackc/pgx"
+	util "github.com/woanware/goutil"
 )
 
 // ##### Structs ##############################################################
@@ -160,6 +163,14 @@ func (h *History) Load() {
 //
 func (h *History) Summary() {
 
+	if util.DoesDirExist("./summary") == false {
+		err := os.MkdirAll("./summary", 0770)
+		if err != nil {
+			fmt.Printf("Error creating summary directory: %v\n", err)
+			return
+		}
+	}
+
 	var parts []string
 	var part string
 	var peerAs uint32
@@ -168,7 +179,9 @@ func (h *History) Summary() {
 	var temp string
 	var count uint64
 
-	for _, a := range h.data {
+	b.WriteString("SRC-DST, PEER_AS, COUNT, PATH1, PATH2, PATH3, PATH4, PATH5, PATH6, PATH6, PATH7, PATH8, PATH9, PATH10\n")
+
+	for peer, a := range h.data {
 		for route, count = range a {
 			parts = strings.Split(route, " ")
 
@@ -185,6 +198,8 @@ func (h *History) Summary() {
 			lastCountry := asNames.Country(peerAs)
 			b.WriteString(lastCountry)
 			b.WriteString(", ")
+			b.WriteString(ConvertUInt32ToString(peer))
+			b.WriteString(", ")
 			b.WriteString(ConvertUint64ToString(count))
 			b.WriteString(", ")
 
@@ -197,11 +212,13 @@ func (h *History) Summary() {
 			}
 
 			b.WriteString("\n")
-
-			fmt.Println(b.String())
 		}
 	}
 
+	err := ioutil.WriteFile("./summary/summary.csv", b.Bytes(), 0770)
+	if err != nil {
+		fmt.Printf("Error writing summary data: %v\n", err)
+	}
 	// _, err = pool.CopyFrom(
 	// 	pgx.Identifier{"routes"},
 	// 	[]string{"peer_as", "route", "count"},

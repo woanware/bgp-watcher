@@ -13,15 +13,14 @@ import (
 type DetectData struct {
 	Name        string
 	Timestamp   time.Time
-	As          uint32
 	PeerIP      net.IP
+	PeerAs      uint32
 	Paths       []uint32
 	PathsString string
 	NLRI        []*bgp.IPAddrPrefix
 }
 
 type Detector struct {
-	//asNames             *AsNames
 	queue               chan *DetectData
 	targetAs            map[uint32]struct{}
 	monitorCountryCodes map[string]struct{}
@@ -120,10 +119,10 @@ func (d *Detector) Start() {
 }
 
 //
-func (d *Detector) Add(name string, timestamp time.Time, as uint32, peerIP net.IP,
-	pathsString string, paths []uint32, nlri []*bgp.IPAddrPrefix) {
+func (d *Detector) Add(name string, timestamp time.Time, peerAs uint32,
+	peerIP net.IP, pathsString string, paths []uint32, nlri []*bgp.IPAddrPrefix) {
 
-	d.queue <- &DetectData{Name: name, Timestamp: timestamp, As: as, PeerIP: peerIP, PathsString: pathsString, Paths: paths, NLRI: nlri}
+	d.queue <- &DetectData{Name: name, Timestamp: timestamp, PeerAs: peerAs, PeerIP: peerIP, PathsString: pathsString, Paths: paths, NLRI: nlri}
 }
 
 //
@@ -136,6 +135,12 @@ func (d *Detector) detect(dd *DetectData) {
 	}
 
 	ret = d.isAnomlousPeer(dd)
+	if ret == true {
+		// We raised an alert so don't process further
+		return
+	}
+
+	ret = d.isLowFrequency(dd)
 	if ret == true {
 		// We raised an alert so don't process further
 		return
@@ -166,7 +171,6 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 
 	var country string
 	var count uint64
-	//var err error
 	ret := false
 
 	// Check the country of the intermediary routes
@@ -202,17 +206,17 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 			count = history.GetRouteCount(firstAs, dd.PathsString)
 
 			if count == 0 {
-				printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[i], convertAsPath(dd.Paths), "First Appearance", "")
+				printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "First Appearance", "")
 				ret = true
 				continue
 
 			} else if count > 0 && count < 5 {
-				printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[i], convertAsPath(dd.Paths), "Low Frequency", "")
+				printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Low Frequency", "")
 				ret = true
 				continue
 
 			} else if count > 5 && count < 10 {
-				printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[i], convertAsPath(dd.Paths), "Moderate Frequency", "")
+				printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Moderate Frequency", "")
 				ret = true
 				continue
 			}
@@ -237,7 +241,7 @@ func (d *Detector) isAnomlousPeer(dd *DetectData) bool {
 	for _, n := range dd.NLRI {
 
 		if d.CheckPrefix(n) == true {
-			printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[0], convertAsPath(dd.Paths), "Invalid Prefix Peer",
+			printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[0], dd.PathsString, "Invalid Prefix Peer",
 				fmt.Sprintf("Prefix: %s", n))
 
 			ret = true
@@ -245,4 +249,25 @@ func (d *Detector) isAnomlousPeer(dd *DetectData) bool {
 	}
 
 	return ret
+}
+
+//
+func (d *Detector) isLowFrequency(dd *DetectData) bool {
+
+	count := history.GetRouteCount(dd.PeerAs, dd.PathsString)
+
+	if count == 0 {
+		printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "First Appearance", "")
+		return true
+
+	} else if count > 0 && count < 5 {
+		printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Low Frequency", "")
+		return true
+
+	} else if count > 5 && count < 10 {
+		printAlert(PriorityHigh, dd.Timestamp.String(), dd.PeerAs, dd.PathsString, "Moderate Frequency", "")
+		return true
+	}
+
+	return false
 }
