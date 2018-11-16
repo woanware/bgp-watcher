@@ -33,37 +33,11 @@ func NewMonitor(d *Detector, processes int) *Monitor {
 func (m *Monitor) Start() {
 
 	m.detector.Start()
-	m.load()
 	c := cron.New()
 	c.AddFunc("@every 1m", m.check)
 	// c.Start()
 
 	m.check()
-}
-
-//
-func (m *Monitor) load() {
-
-	rows, err := pool.Query("select peer_as, route, count from routes")
-	if err != nil {
-		fmt.Printf("Error loading historical data: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
-	var peerAs uint32
-	var route string
-	var count uint64
-
-	for rows.Next() {
-		err = rows.Scan(&peerAs, &route, &count)
-		if err != nil {
-			fmt.Printf("Error loading historical data row: %v\n", err)
-			continue
-		}
-
-		history.SetCount(peerAs, route, count)
-	}
 }
 
 //

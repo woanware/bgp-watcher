@@ -154,6 +154,11 @@ func ConvertUInt32ToString(data uint32) string {
 	return strconv.FormatInt(int64(data), 10)
 }
 
+func ConvertUint64ToString(data uint64) string {
+
+	return strconv.FormatUint(data, 10)
+}
+
 // Converts a string to an uint8
 func ConvertStringToUint8(data string) (uint8, error) {
 

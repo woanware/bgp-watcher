@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jackc/pgx"
+	pgx "github.com/jackc/pgx"
 	flags "github.com/jessevdk/go-flags"
 	viper "github.com/spf13/viper"
 )
@@ -46,14 +46,21 @@ func main() {
 		return
 	}
 
-	history = &History{data: make(map[uint32]map[string]uint64)}
+	history = NewHistory()
 	detector := NewDetector(config)
 	historic := NewHistoric(detector, config)
-	if historic.Existing() == false {
+
+	if options.Reparse == true {
 		historic.Update()
 	} else {
-		history.Load()
+		if historic.Existing() == false {
+			historic.Update()
+		} else {
+			history.Load()
+		}
 	}
+
+	history.Summary()
 
 	monitor := NewMonitor(detector, config.Processes)
 	monitor.Start()
@@ -98,10 +105,9 @@ func configureDatabase() {
 			User:     config.DatabaseUsername,
 			Password: config.DatabasePassword,
 			Database: config.Database,
-			//Logger:   logger,
 		},
 		MaxConnections: 5,
-		AfterConnect:   configurePreparedStatements,
+		//AfterConnect:   configurePreparedStatements,
 	}
 
 	var err error
@@ -110,31 +116,17 @@ func configureDatabase() {
 		fmt.Printf("Unable to create connection pool: %v\n", err)
 		os.Exit(1)
 	}
-
-	// c, err := pgx.ParseDSN(fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable",
-	// 	config.DatabaseServer, config.DatabasePort, config.Database, config.DatabaseUsername, config.DatabasePassword))
-
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "Error parsing database config: %v\n", err)
-	// 	os.Exit(1)
-	// }
-
-	// db, err = pgx.Connect(c)
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
-	// 	os.Exit(1)
-	// }
 }
 
-func configurePreparedStatements(conn *pgx.Conn) (err error) {
+// func configurePreparedStatements(conn *pgx.Conn) (err error) {
 
-	_, err = conn.Prepare("get_route_count", `select count from routes where peer_as=$1 and route=$2`)
-	if err != nil {
-		fmt.Printf("Error preparing 'get_route_count' statement: %v\n", err)
-	}
+// 	_, err = conn.Prepare("get_route_count", `select count from routes where peer_as=$1 and route=$2`)
+// 	if err != nil {
+// 		fmt.Printf("Error preparing 'get_route_count' statement: %v\n", err)
+// 	}
 
-	return
-}
+// 	return
+// }
 
 //
 func reloadConfig() {

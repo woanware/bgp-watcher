@@ -51,6 +51,8 @@ func (h *Historic) Existing() bool {
 // Downloads and loads/parses the BGP update files
 func (h *Historic) Update() {
 
+	fmt.Println("Performing historic data refresh")
+
 	// Get a constant value for NOW
 	ts := time.Now()
 

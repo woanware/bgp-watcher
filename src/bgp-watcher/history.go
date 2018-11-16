@@ -9,10 +9,35 @@ import (
 	pgx "github.com/jackc/pgx"
 )
 
+// ##### Structs ##############################################################
+
 //
 type History struct {
 	mux  sync.Mutex
 	data map[uint32]map[string]uint64
+}
+
+// ##### Methods ##############################################################
+
+//
+func NewHistory() *History {
+
+	return &History{
+		data: make(map[uint32]map[string]uint64),
+	}
+}
+
+//
+func (h *History) GetRouteCount(as uint32, route string) uint64 {
+
+	h.mux.Lock()
+	defer h.mux.Unlock()
+
+	if h.data[as] == nil {
+		return 0
+	}
+
+	return h.data[as][route]
 }
 
 //
@@ -30,22 +55,23 @@ func (h *History) Set(as uint32, route string) {
 func (h *History) SetCount(as uint32, route string, count uint64) {
 
 	h.mux.Lock()
+	defer h.mux.Unlock()
 	if h.data[as] == nil {
 		h.data[as] = make(map[string]uint64)
 	}
 	h.data[as][route] = count
-	defer h.mux.Unlock()
+
 }
 
 //
 func (h *History) SetAdd(as uint32, route string, count uint64) {
 
 	h.mux.Lock()
+	defer h.mux.Unlock()
 	if h.data[as] == nil {
 		h.data[as] = make(map[string]uint64)
 	}
 	h.data[as][route] += count
-	defer h.mux.Unlock()
 }
 
 //
@@ -57,8 +83,9 @@ func (h *History) Persist() {
 		fmt.Printf("Error truncating historic data: %v\n", err)
 	}
 
+	// Massage the data into a format that can be used with
+	// the postgres COPY functionality e.g. fastest inserts
 	var rows [][]interface{}
-
 	for peer, a := range h.data {
 		for route, count := range a {
 			rows = append(rows, []interface{}{peer, route, count})
@@ -74,6 +101,60 @@ func (h *History) Persist() {
 		fmt.Printf("Error inserting historic data: %v\n", err)
 		return
 	}
+
+	// // FILE PERSISTANCE
+	// h.mux.Lock()
+	// defer h.mux.Unlock()
+
+	// buffer := new(bytes.Buffer)
+	// encoder := gob.NewEncoder(buffer)
+
+	// err := encoder.Encode(h.data)
+	// if err != nil {
+	// 	fmt.Printf("Error encoding historic data: %v\n", err)
+	// }
+
+	// err = ioutil.WriteFile("./db/history.db", buffer.Bytes(), 0770)
+	// if err != nil {
+	// 	fmt.Printf("Error persisting historic data: %v\n", err)
+	// }
+}
+
+//
+func (h *History) Load() {
+
+	rows, _ := pool.Query("select peer_as, route, count from routes")
+
+	var peerAs uint32
+	var route string
+	var count uint64
+	var err error
+
+	for rows.Next() {
+		err = rows.Scan(&peerAs, &route, &count)
+		if err != nil {
+			fmt.Printf("Error loading historic data: %v\n", err)
+			continue
+		}
+
+		h.SetAdd(peerAs, route, count)
+	}
+
+	// // FILE PERSISTANCE
+	// h.mux.Lock()
+	// defer h.mux.Unlock()
+
+	// data, err := ioutil.ReadFile("./db/history.db")
+	// reader := bytes.NewReader(data)
+	// if err != nil {
+	// 	fmt.Printf("Error reading historic data: %v\n", err)
+	// }
+
+	// decoder := gob.NewDecoder(reader)
+	// err = decoder.Decode(&h.data)
+	// if err != nil {
+	// 	fmt.Printf("Error loading historic data: %v\n", err)
+	// }
 }
 
 //
@@ -84,23 +165,40 @@ func (h *History) Summary() {
 	var peerAs uint32
 	var b bytes.Buffer
 	var route string
-	//var err error
+	var temp string
+	var count uint64
 
 	for _, a := range h.data {
-		for route = range a {
+		for route, count = range a {
 			parts = strings.Split(route, " ")
+
+			// Get originating peer details
+			temp = parts[0]
+			peerAs, _ = ConvertStringToUint32(temp)
+			firstCountry := asNames.Country(uint32(peerAs))
+			b.WriteString(firstCountry)
+			b.WriteString("->")
+
+			// Get destination peer details
+			temp = parts[len(parts)-1]
+			peerAs, _ = ConvertStringToUint32(temp)
+			lastCountry := asNames.Country(peerAs)
+			b.WriteString(lastCountry)
+			b.WriteString(", ")
+			b.WriteString(ConvertUint64ToString(count))
+			b.WriteString(", ")
 
 			for _, part = range parts {
 				b.WriteString(part)
-				b.WriteString("(")
+				b.WriteString(" (")
 				peerAs, _ = ConvertStringToUint32(part)
 				b.WriteString(asNames.Country(peerAs))
-				b.WriteString(") # ")
+				b.WriteString("), ")
 			}
 
-			fmt.Println(b.String())
+			b.WriteString("\n")
 
-			//rows = append(rows, []interface{}{peer, route, count})
+			fmt.Println(b.String())
 		}
 	}
 

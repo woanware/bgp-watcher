@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	bgp "github.com/osrg/gobgp/packet"
@@ -166,8 +165,8 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 	}
 
 	var country string
-	var count int64
-	var err error
+	var count uint64
+	//var err error
 	ret := false
 
 	// Check the country of the intermediary routes
@@ -189,16 +188,18 @@ func (d *Detector) isAnomlousCountry(dd *DetectData) bool {
 				continue
 			}
 
-			err = pool.QueryRow("get_route_count", firstAs, dd.PathsString).Scan(&count)
-			if err != nil {
-				if strings.Contains(err.Error(), "no rows in result set") == false {
-					fmt.Printf("Error retrieving 'get_route_count' count: %v", err)
-					continue
-				}
+			// err = pool.QueryRow("get_route_count", firstAs, dd.PathsString).Scan(&count)
+			// if err != nil {
+			// 	if strings.Contains(err.Error(), "no rows in result set") == false {
+			// 		fmt.Printf("Error retrieving 'get_route_count' count: %v", err)
+			// 		continue
+			// 	}
 
-				count = 0
-				ret = true
-			}
+			// 	count = 0
+			// 	ret = true
+			// }
+
+			count = history.GetRouteCount(firstAs, dd.PathsString)
 
 			if count == 0 {
 				printAlert(PriorityHigh, dd.Timestamp.String(), dd.Paths[i], convertAsPath(dd.Paths), "First Appearance", "")
