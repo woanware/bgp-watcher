@@ -33,6 +33,7 @@ func (m *Monitor) Start() {
 	m.detector.Start()
 	c := cron.New()
 	c.AddFunc("@every 1m", m.check)
+	c.AddFunc("@every 5m", history.Persist)
 	c.Start()
 
 	// DEBUG

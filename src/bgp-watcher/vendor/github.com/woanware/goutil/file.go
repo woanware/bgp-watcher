@@ -11,72 +11,132 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-//
-func Unzip(src, dest string) error {
+// //
+// func Unzip(src, dest string) error {
+
+// 	r, err := zip.OpenReader(src)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer func() error {
+// 		if err := r.Close(); err != nil {
+// 			return fmt.Errorf("Error unzipping: (%s) %v", src, err)
+// 		}
+
+// 		return nil
+// 	}()
+
+// 	os.MkdirAll(dest, 0755)
+
+// 	// Closure to address file descriptors issue with all the deferred .Close() methods
+// 	extractAndWriteFile := func(f *zip.File) error {
+// 		rc, err := f.Open()
+// 		if err != nil {
+// 			return err
+// 		}
+// 		defer func() error {
+// 			if err := rc.Close(); err != nil {
+// 				return fmt.Errorf("Error unzipping: (%s) %v", src, err)
+// 			}
+
+// 			return nil
+// 		}()
+
+// 		path := filepath.Join(dest, f.Name)
+
+// 		if f.FileInfo().IsDir() {
+// 			os.MkdirAll(path, f.Mode())
+// 		} else {
+// 			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+// 			if err != nil {
+// 				return err
+// 			}
+// 			defer func() error {
+// 				if err := f.Close(); err != nil {
+// 					return fmt.Errorf("Error unzipping: (%s) %v", src, err)
+// 				}
+
+// 				return nil
+// 			}()
+
+// 			_, err = io.Copy(f, rc)
+// 			if err != nil {
+// 				return err
+// 			}
+// 		}
+// 		return nil
+// 	}
+
+// 	for _, f := range r.File {
+// 		err := extractAndWriteFile(f)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	return nil
+// }
+
+func Unzip(src string, dest string) ([]string, error) {
+
+	var filenames []string
 
 	r, err := zip.OpenReader(src)
 	if err != nil {
-		return err
+		return filenames, err
 	}
-	defer func() error {
-		if err := r.Close(); err != nil {
-			return fmt.Errorf("Error unzipping: (%s) %v", src, err)
-		}
-
-		return nil
-	}()
-
-	os.MkdirAll(dest, 0755)
-
-	// Closure to address file descriptors issue with all the deferred .Close() methods
-	extractAndWriteFile := func(f *zip.File) error {
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		defer func() error {
-			if err := rc.Close(); err != nil {
-				return fmt.Errorf("Error unzipping: (%s) %v", src, err)
-			}
-
-			return nil
-		}()
-
-		path := filepath.Join(dest, f.Name)
-
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(path, f.Mode())
-		} else {
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if err != nil {
-				return err
-			}
-			defer func() error {
-				if err := f.Close(); err != nil {
-					return fmt.Errorf("Error unzipping: (%s) %v", src, err)
-				}
-
-				return nil
-			}()
-
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
+	defer r.Close()
 
 	for _, f := range r.File {
-		err := extractAndWriteFile(f)
+
+		rc, err := f.Open()
 		if err != nil {
-			return err
+			return filenames, err
+		}
+		defer rc.Close()
+
+		// Store filename/path for returning and using later on
+		fpath := filepath.Join(dest, f.Name)
+
+		// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return filenames, fmt.Errorf("%s: illegal file path", fpath)
+		}
+
+		filenames = append(filenames, fpath)
+
+		if f.FileInfo().IsDir() {
+
+			// Make Folder
+			os.MkdirAll(fpath, os.ModePerm)
+
+		} else {
+
+			// Make File
+			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				return filenames, err
+			}
+
+			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return filenames, err
+			}
+
+			_, err = io.Copy(outFile, rc)
+
+			// Close the file without defer to close before next iteration of loop
+			outFile.Close()
+
+			if err != nil {
+				return filenames, err
+			}
+
 		}
 	}
-
-	return nil
+	return filenames, nil
 }
 
 //

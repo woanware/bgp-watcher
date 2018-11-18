@@ -71,6 +71,37 @@ func ConvertStringToInt32(data string) int32 {
 	return int32(ret)
 }
 
+// Converts an UInt16 to a string
+func ConvertUInt32ToString(data uint32) string {
+
+	return strconv.FormatInt(int64(data), 10)
+}
+
+func ConvertUint64ToString(data uint64) string {
+
+	return strconv.FormatUint(data, 10)
+}
+
+// Converts a string to an uint8
+func ConvertStringToUint8(data string) (uint8, error) {
+
+	ret, err := strconv.ParseInt(data, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint8(ret), nil
+}
+
+// ConvertStringToUint32 converts a string to an uint32
+func ConvertStringToUint32(data string) (uint32, error) {
+
+	ret, err := strconv.ParseInt(data, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint32(ret), nil
+}
+
 //
 func ParseBool(data string) bool {
 

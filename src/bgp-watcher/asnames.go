@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+
+	util "github.com/woanware/goutil"
 )
 
 // ##### Structs ##############################################################
@@ -97,7 +99,7 @@ func (a *AsNames) Update() error {
 			}
 		}
 
-		as, err = ConvertStringToUint32(match[1])
+		as, err = util.ConvertStringToUint32(match[1])
 		if err != nil {
 			fmt.Printf("Error converting AS data AS number (%v): %v\n", match[1], err)
 			continue

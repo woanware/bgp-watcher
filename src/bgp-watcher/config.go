@@ -7,6 +7,7 @@ import (
 	fsnotify "github.com/fsnotify/fsnotify"
 	bgp "github.com/osrg/gobgp/packet"
 	viper "github.com/spf13/viper"
+	util "github.com/woanware/goutil"
 )
 
 // ##### Structs ##############################################################
@@ -79,7 +80,7 @@ func parseConfiguration() *Config {
 	// Convert string slice values (Target AS's) into uint32
 	temp := configReader.GetStringSlice("target_as")
 	for _, t := range temp {
-		as, err = ConvertStringToUint32(t)
+		as, err = util.ConvertStringToUint32(t)
 		if err != nil {
 			log.Fatalf("Invalid AS: %s\n", as)
 		}
@@ -90,7 +91,7 @@ func parseConfiguration() *Config {
 	// Convert string slice values (Neighbour Peers) into uint32
 	temp = configReader.GetStringSlice("neighbour_peers")
 	for _, t := range temp {
-		as, err = ConvertStringToUint32(t)
+		as, err = util.ConvertStringToUint32(t)
 		if err != nil {
 			log.Fatalf("Invalid AS: %s\n", as)
 		}
@@ -109,7 +110,7 @@ func parseConfiguration() *Config {
 			log.Fatalf("Invalid prefix: %s\n", t)
 		}
 
-		bit, err = ConvertStringToUint8(parts[1])
+		bit, err = util.ConvertStringToUint8(parts[1])
 		if err != nil {
 			log.Fatalf("Invalid prefix bit: %s\n", parts[1])
 		}

@@ -187,26 +187,26 @@ func (h *History) Summary() {
 
 			// Get originating peer details
 			temp = parts[0]
-			peerAs, _ = ConvertStringToUint32(temp)
+			peerAs, _ = util.ConvertStringToUint32(temp)
 			firstCountry := asNames.Country(uint32(peerAs))
 			b.WriteString(firstCountry)
 			b.WriteString("->")
 
 			// Get destination peer details
 			temp = parts[len(parts)-1]
-			peerAs, _ = ConvertStringToUint32(temp)
+			peerAs, _ = util.ConvertStringToUint32(temp)
 			lastCountry := asNames.Country(peerAs)
 			b.WriteString(lastCountry)
 			b.WriteString(", ")
-			b.WriteString(ConvertUInt32ToString(peer))
+			b.WriteString(util.ConvertUInt32ToString(peer))
 			b.WriteString(", ")
-			b.WriteString(ConvertUint64ToString(count))
+			b.WriteString(util.ConvertUint64ToString(count))
 			b.WriteString(", ")
 
 			for _, part = range parts {
 				b.WriteString(part)
 				b.WriteString(" (")
-				peerAs, _ = ConvertStringToUint32(part)
+				peerAs, _ = util.ConvertStringToUint32(part)
 				b.WriteString(asNames.Country(peerAs))
 				b.WriteString("), ")
 			}

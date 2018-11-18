@@ -4,8 +4,8 @@
 [[projects]]
   name = "github.com/PuerkitoBio/goquery"
   packages = ["."]
-  revision = "dc2ec5c7ca4d9aae063b79b9f581dd3ea6afd2b2"
-  version = "v1.4.1"
+  revision = "2d2796f41742ece03e8086188fa4db16a3a0b458"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/andybalholm/cascadia"
@@ -158,7 +158,7 @@
   branch = "master"
   name = "github.com/woanware/goutil"
   packages = ["."]
-  revision = "feab513521a70cf07a65956e060c4ed3f6b07370"
+  revision = "cc8af698c897ea80eeb072de45276ef99aab791d"
 
 [[projects]]
   branch = "master"
@@ -167,13 +167,13 @@
     "html",
     "html/atom"
   ]
-  revision = "03003ca0c849e57b6ea29a4bab8d3cb6e4d568fe"
+  revision = "adae6a3d119ae4890b46832a2e88a95adc62b8e7"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "66b7b1311ac80bbafcd2daeef9a5e6e2cd1e2399"
+  revision = "93218def8b18e66adbdab3eca8ec334700329f1f"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -197,6 +197,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d484d031654d7a069a808372a9fa18c0d9d944899490d630ac3b54e2546d9e20"
+  inputs-digest = "479646b63acedec04e3794fef69dee8f52f5c8e7cd83d4b7cb7fa5d55ea66473"
   solver-name = "gps-cdcl"
   solver-version = 1
