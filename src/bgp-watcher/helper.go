@@ -3,8 +3,6 @@ package main
 import (
 	"compress/gzip"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -94,8 +92,7 @@ func downloadUpdateFile(name string, url string, year int, month int, href strin
 		var err error
 
 		// Download the file to the "temp" directory
-		err = DownloadFile(fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href),
-			fmt.Sprintf("%s/%d.%02d/%s", url, year, month, href))
+		err = util.DownloadToFile(fmt.Sprintf("%s/%d.%02d/%s", url, year, month, href), fmt.Sprintf("./temp/%s/%d/%d/%s", name, year, month, href))
 
 		if err == nil {
 			// Make sure the file header reads OK (gzip)
@@ -119,33 +116,6 @@ func downloadUpdateFile(name string, url string, year int, month int, href strin
 	})
 
 	return err
-}
-
-// DownloadFile will download a url to a local file. It's efficient because it will
-// write as it downloads and not load the whole file into memory.
-func DownloadFile(filepath string, url string) error {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // convertAsPath returns the integer value path route as a string
