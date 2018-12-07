@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	fsnotify "github.com/fsnotify/fsnotify"
-	bgp "github.com/osrg/gobgp/packet"
+	bgp "github.com/osrg/gobgp/pkg/packet/bgp"
 	viper "github.com/spf13/viper"
 	util "github.com/woanware/goutil"
 )

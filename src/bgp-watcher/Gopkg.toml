@@ -24,14 +24,9 @@
 #   go-tests = true
 #   unused-packages = true
 
-
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  name = "github.com/osrg/gobgp"
-  version = "1.5.0"
 
 [[constraint]]
   branch = "master"

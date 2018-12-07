@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	bgp "github.com/osrg/gobgp/packet"
+	bgp "github.com/osrg/gobgp/pkg/packet/bgp"
 )
 
 // ##### Structs ##############################################################

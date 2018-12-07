@@ -7,7 +7,8 @@ import (
 	"log"
 	"os"
 
-	bgp "github.com/osrg/gobgp/packet"
+	bgp "github.com/osrg/gobgp/pkg/packet/bgp"
+	mrt "github.com/osrg/gobgp/pkg/packet/mrt"
 )
 
 // ##### Structs ##############################################################
@@ -31,13 +32,13 @@ func (b *MrtParser) ParseAndCollect(detector *Detector, filePath string) error {
 	}
 
 	scanner := bufio.NewScanner(gzipReader)
-	scanner.Split(bgp.SplitMrt)
+	scanner.Split(mrt.SplitMrt)
 
 	var last uint32
 	var data []byte
-	var hdr *bgp.MRTHeader
-	var msg *bgp.MRTMessage
-	var bgp4mp *bgp.BGP4MPMessage
+	var hdr *mrt.MRTHeader
+	var msg *mrt.MRTMessage
+	var bgp4mp *mrt.BGP4MPMessage
 	var bgpUpdate *bgp.BGPUpdate
 	var pa bgp.PathAttributeInterface
 	var paAsPath *bgp.PathAttributeAsPath
@@ -47,22 +48,22 @@ entries:
 	for scanner.Scan() {
 		data = scanner.Bytes()
 
-		hdr = &bgp.MRTHeader{}
-		err = hdr.DecodeFromBytes(data[:bgp.MRT_COMMON_HEADER_LEN])
+		hdr = &mrt.MRTHeader{}
+		err = hdr.DecodeFromBytes(data[:mrt.MRT_COMMON_HEADER_LEN])
 		if err != nil {
 			return err
 		}
 
-		msg, err = bgp.ParseMRTBody(hdr, data[bgp.MRT_COMMON_HEADER_LEN:])
+		msg, err = mrt.ParseMRTBody(hdr, data[mrt.MRT_COMMON_HEADER_LEN:])
 		if err != nil {
 			log.Printf("could not parse mrt body: %v", err)
 			continue entries
 		}
 
 		switch msg.Body.(type) {
-		case *bgp.BGP4MPMessage:
+		case *mrt.BGP4MPMessage:
 
-			bgp4mp = msg.Body.(*bgp.BGP4MPMessage)
+			bgp4mp = msg.Body.(*mrt.BGP4MPMessage)
 
 			switch bgp4mp.BGPMessage.Body.(type) {
 			case *bgp.BGPUpdate:
@@ -106,7 +107,7 @@ entries:
 							// if last == 34178 {
 
 							// 	fmt.Println(bgp4mp.String())
-							// 	for _, b := range bgpUpdate.NLRI {
+							// 	for _, b := range bgpUpdate.NLRI {bgp
 
 							// 		// if d.CheckPrefix(b) == false {
 							// 		// 	continue
@@ -147,17 +148,17 @@ entries:
 					}
 				}
 
-			case *bgp.PeerIndexTable:
-				// IGNORED
+				// case *mrt.PeerIndexTable:
+				// 	// IGNORED
 
-			case *bgp.Rib:
-				// IGNORED
+				// case *bgp.Rib:
+				// 	// IGNORED
 
-			case *bgp.BGP4MPStateChange:
-				// IGNORED
+				// case *mrt.BGP4MPStateChange:
+				// 	// IGNORED
 
-			case *bgp.BGPKeepAlive:
-				// IGNORED
+				// case *bgp.BGPKeepAlive:
+				// 	// IGNORED
 			}
 		}
 	}
@@ -181,13 +182,13 @@ func (b *MrtParser) ParseAndDetect(detector *Detector, name string, filePath str
 	}
 
 	scanner := bufio.NewScanner(gzipReader)
-	scanner.Split(bgp.SplitMrt)
+	scanner.Split(mrt.SplitMrt)
 
 	var last uint32
 	var data []byte
-	var hdr *bgp.MRTHeader
-	var msg *bgp.MRTMessage
-	var bgp4mp *bgp.BGP4MPMessage
+	var hdr *mrt.MRTHeader
+	var msg *mrt.MRTMessage
+	var bgp4mp *mrt.BGP4MPMessage
 	var bgpUpdate *bgp.BGPUpdate
 	var pa bgp.PathAttributeInterface
 	var paAsPath *bgp.PathAttributeAsPath
@@ -197,35 +198,35 @@ entries:
 	for scanner.Scan() {
 		data = scanner.Bytes()
 
-		hdr = &bgp.MRTHeader{}
-		err = hdr.DecodeFromBytes(data[:bgp.MRT_COMMON_HEADER_LEN])
+		hdr = &mrt.MRTHeader{}
+		err = hdr.DecodeFromBytes(data[:mrt.MRT_COMMON_HEADER_LEN])
 		if err != nil {
 			return history, err
 		}
 
-		msg, err = bgp.ParseMRTBody(hdr, data[bgp.MRT_COMMON_HEADER_LEN:])
+		msg, err = mrt.ParseMRTBody(hdr, data[mrt.MRT_COMMON_HEADER_LEN:])
 		if err != nil {
 			log.Printf("could not parse mrt body: %v", err)
 			continue entries
 		}
 
 		switch msg.Body.(type) {
-		case *bgp.BGP4MPMessage:
+		case *mrt.BGP4MPMessage:
 
-			bgp4mp = msg.Body.(*bgp.BGP4MPMessage)
+			bgp4mp = msg.Body.(*mrt.BGP4MPMessage)
 
 			switch bgp4mp.BGPMessage.Body.(type) {
-			case *bgp.PeerIndexTable:
-				// IGNORED
+			//case *bgp.PeerIndexTable:
+			// IGNORED
 
-			case *bgp.Rib:
-				// IGNORED
+			//case *mrt.Rib:
+			// IGNORED
 
-			case *bgp.BGP4MPStateChange:
-				// IGNORED
+			//case *mrt.BGP4MPStateChange:
+			// IGNORED
 
-			case *bgp.BGPKeepAlive:
-				// IGNORED
+			//case *bgp.BGPKeepAlive:
+			// IGNORED
 
 			case *bgp.BGPUpdate:
 

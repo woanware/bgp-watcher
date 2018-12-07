@@ -46,8 +46,8 @@
     "pgproto3",
     "pgtype"
   ]
-  revision = "89f1e6ac7276b61d885db5e5aed6fcbedd1c7e31"
-  version = "v3.2.0"
+  revision = "c59c9cac59ab95eceb0c12ff338923c62f411ea2"
+  version = "v3.3.0"
 
 [[projects]]
   name = "github.com/jessevdk/go-flags"
@@ -98,10 +98,13 @@
   version = "v1.1.2"
 
 [[projects]]
+  branch = "master"
   name = "github.com/osrg/gobgp"
-  packages = ["packet"]
-  revision = "32065b3f16a16eda5ce817821847f38487c84809"
-  version = "v1.5"
+  packages = [
+    "pkg/packet/bgp",
+    "pkg/packet/mrt"
+  ]
+  revision = "7ebcb44a51ff220a80ad0615cc181ae32561927f"
 
 [[projects]]
   name = "github.com/pelletier/go-toml"
@@ -151,14 +154,14 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "2c12c60302a5a0e62ee102ca9bc996277c2f64f5"
-  version = "v1.2.1"
+  revision = "41cd1c3aa32b2685fae6c296e6f044bc68922c0e"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/woanware/goutil"
   packages = ["."]
-  revision = "cc8af698c897ea80eeb072de45276ef99aab791d"
+  revision = "2a572e4b4acd619c824e05844a09f4fd47054918"
 
 [[projects]]
   branch = "master"
@@ -167,13 +170,13 @@
     "html",
     "html/atom"
   ]
-  revision = "adae6a3d119ae4890b46832a2e88a95adc62b8e7"
+  revision = "351d144fa1fc0bd934e2408202be0c29f25e35a0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "93218def8b18e66adbdab3eca8ec334700329f1f"
+  revision = "a5c9d58dba9a56f97aaa86f55e638b718c5a6c42"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -191,12 +194,12 @@
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "479646b63acedec04e3794fef69dee8f52f5c8e7cd83d4b7cb7fa5d55ea66473"
+  inputs-digest = "ba7ffffd43df1c227e5f51bd55b60803f9ebe2adf831e30a616b42989078ca40"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -12,23 +12,6 @@ const MIN_TIME = "2006-01-02T15:04:05Z07:00"
 
 // ##### Methods #############################################################
 
-func ConvertInt64ToString(data int64) string {
-
-	return strconv.FormatInt(data, 10)
-}
-
-// Converts an Int to a string
-func ConvertIntToString(data int) string {
-
-	return strconv.FormatInt(int64(data), 10)
-}
-
-// Converts an UInt16 to a string
-func ConvertUInt16ToString(data uint16) string {
-
-	return strconv.FormatInt(int64(data), 10)
-}
-
 // Converts an Int64 to a string
 func ConvertInt8ToString(data int8) string {
 
@@ -41,14 +24,42 @@ func ConvertInt16ToString(data int16) string {
 	return strconv.FormatInt(int64(data), 10)
 }
 
-// Converts a string to an int64
-func ConvertStringToInt64(data string) int64 {
+// Converts an UInt16 to a string
+func ConvertUInt16ToString(data uint16) string {
 
-	ret, err := strconv.ParseInt(data, 10, 64)
+	return strconv.FormatInt(int64(data), 10)
+}
+
+// Converts an Int to a string
+func ConvertIntToString(data int) string {
+
+	return strconv.FormatInt(int64(data), 10)
+}
+
+// Converts an UInt16 to a string
+func ConvertUInt32ToString(data uint32) string {
+
+	return strconv.FormatInt(int64(data), 10)
+}
+
+func ConvertInt64ToString(data int64) string {
+
+	return strconv.FormatInt(data, 10)
+}
+
+func ConvertUint64ToString(data uint64) string {
+
+	return strconv.FormatUint(data, 10)
+}
+
+// Converts a string to an uint8
+func ConvertStringToUint8(data string) (uint8, error) {
+
+	ret, err := strconv.ParseInt(data, 10, 32)
 	if err != nil {
-		return -1
+		return 0, err
 	}
-	return ret
+	return uint8(ret), nil
 }
 
 // Converts a string to an int
@@ -71,27 +82,6 @@ func ConvertStringToInt32(data string) int32 {
 	return int32(ret)
 }
 
-// Converts an UInt16 to a string
-func ConvertUInt32ToString(data uint32) string {
-
-	return strconv.FormatInt(int64(data), 10)
-}
-
-func ConvertUint64ToString(data uint64) string {
-
-	return strconv.FormatUint(data, 10)
-}
-
-// Converts a string to an uint8
-func ConvertStringToUint8(data string) (uint8, error) {
-
-	ret, err := strconv.ParseInt(data, 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	return uint8(ret), nil
-}
-
 // ConvertStringToUint32 converts a string to an uint32
 func ConvertStringToUint32(data string) (uint32, error) {
 
@@ -100,6 +90,16 @@ func ConvertStringToUint32(data string) (uint32, error) {
 		return 0, err
 	}
 	return uint32(ret), nil
+}
+
+// Converts a string to an int64
+func ConvertStringToInt64(data string) int64 {
+
+	ret, err := strconv.ParseInt(data, 10, 64)
+	if err != nil {
+		return -1
+	}
+	return ret
 }
 
 //
